@@ -14,6 +14,9 @@ resource vectorSearch 'Microsoft.Search/searchServices@2023-11-01' = {
     partitionCount: 1
     replicaCount: 1
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
   sku: {
     name: 'basic'
   }
