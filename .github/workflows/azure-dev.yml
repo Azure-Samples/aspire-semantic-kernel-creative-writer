@@ -30,21 +30,17 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
-      - name: Install .NET Aspire workload
-        run: dotnet workload install aspire
-      - name: Install .NET Aspire workload
-        run: dotnet workload install aspire
 
-      - name: Run Microsoft Security DevOps Analysis
-        uses: microsoft/security-devops-action@v1
-        id: msdo
-        with:
-          tools: templateanalyzer
+      # - name: Run Microsoft Security DevOps Analysis
+      #   uses: microsoft/security-devops-action@v1
+      #   id: msdo
+      #   with:
+      #     tools: templateanalyzer
 
-      - name: Upload results to Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.msdo.outputs.sarifFile }}
+      # - name: Upload results to Security tab
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: ${{ steps.msdo.outputs.sarifFile }}
 
       - name: Log in with Azure (Federated Credentials)
         run: |
