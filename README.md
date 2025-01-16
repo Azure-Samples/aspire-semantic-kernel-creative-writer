@@ -76,6 +76,7 @@ The first step for getting started with this template are the notebooks which ca
 - VSCode
   - [Polyglot Notebooks Extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode)
 - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
+- [Node](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 
 ### Try it out
 
