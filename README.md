@@ -93,16 +93,17 @@ Open the notebooks under `./experiments/` and follow their instructions.
 
 ### Running the app
 
-If using Visual Studio, open the solution file ChatApp.sln and launch/debug the ChatApp.AppHost project.
+If using Visual Studio, open the solution file `ChatApp.sln` and launch/debug the `ChatApp.AppHost` project.
 
-If using the .NET CLI, run dotnet run from the ChatApp.AppHost directory.
+If using the .NET CLI, run dotnet run from the `ChatApp.AppHost` directory.
 
 For more information on local provisioning of Aspire applications, refer to the [Aspire Local Provisioning Guide](https://learn.microsoft.com/en-us/dotnet/aspire/deployment/azure/local-provisioning).
 
 > To utilize Azure resources (e.g. OpenAI) in your local development environment, you need to provide the necessary configuration values.  
 > <https://learn.microsoft.com/en-us/dotnet/aspire/azure/local-provisioning#configuration>
 
-Example to add into a *appsettings.Development.json*
+Example to add into a `appsettings.Development.json` in the `ChatApp.AppHost` directory:
+
 ``` json
 {
   "Azure": {
@@ -111,6 +112,24 @@ Example to add into a *appsettings.Development.json*
     "ResourceGroup": "<Valid resource group name>",
     "Location": "swedencentral",
     "CredentialSource": "InteractiveBrowser"
+  }
+}
+```
+
+If you want to use existing Azure resource, but their endpoints below the Azure section:
+
+```json
+{
+  "Azure": {
+    "SubscriptionId": "<Your subscription id>",
+    "AllowResourceGroupCreation": true,
+    "ResourceGroup": "<Valid resource group name>",
+    "Location": "swedencentral",
+    "CredentialSource": "InteractiveBrowser"
+  },
+  "ConnectionStrings": {
+    "openAI": "https://<lorem>.openai.azure.com/",
+    "vectorSearch": "https://<lorem>.search.windows.net"
   }
 }
 ```

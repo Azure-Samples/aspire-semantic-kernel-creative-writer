@@ -1,6 +1,7 @@
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Search;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -10,11 +11,17 @@ var azureEndpoint = Environment.GetEnvironmentVariable("AzureEndpoint");
 
 var vectorStoreCollectionName = Environment.GetEnvironmentVariable("VectorStoreCollectionName") ?? "products";
 
-var openAi = builder.AddAzureOpenAI("openAi")
-    .AddDeployment(new AzureOpenAIDeployment(azureDeployment, "gpt-4o", "2024-05-13", "Standard", 10))
-    .AddDeployment(new AzureOpenAIDeployment(embeddingModelDeployment, "text-embedding-3-large", "1"));
+var exisitingOpenAi = !builder.Configuration.GetSection("ConnectionStrings")["openAi"].IsNullOrEmpty();
+var openAi = !builder.ExecutionContext.IsPublishMode && exisitingOpenAi
+    ? builder.AddConnectionString("openAi")
+    : builder.AddAzureOpenAI("openAi")
+        .AddDeployment(new AzureOpenAIDeployment(azureDeployment, "gpt-4o", "2024-05-13", "Standard", 10))
+        .AddDeployment(new AzureOpenAIDeployment(embeddingModelDeployment, "text-embedding-3-large", "1"));
 
-var vectorSearch = builder.AddAzureSearch("vectorSearch")
+var exisitingVectorSearch = !builder.Configuration.GetSection("ConnectionStrings")["vectorSearch"].IsNullOrEmpty();
+var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSearch
+    ? builder.AddConnectionString("vectorSearch")
+    : builder.AddAzureOpenAI("vectorSearch")
     .ConfigureInfrastructure(infra =>
     {
         var resources = infra.GetProvisionableResources();
