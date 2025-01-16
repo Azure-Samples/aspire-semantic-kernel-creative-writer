@@ -21,7 +21,7 @@ var openAi = !builder.ExecutionContext.IsPublishMode && exisitingOpenAi
 var exisitingVectorSearch = !builder.Configuration.GetSection("ConnectionStrings")["vectorSearch"].IsNullOrEmpty();
 var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSearch
     ? builder.AddConnectionString("vectorSearch")
-    : builder.AddAzureOpenAI("vectorSearch")
+    : builder.AddAzureSearch("vectorSearch")
     .ConfigureInfrastructure(infra =>
     {
         var resources = infra.GetProvisionableResources();
