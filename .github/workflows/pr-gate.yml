@@ -28,13 +28,13 @@ jobs:
         with:
           dotnet-version: "9.0.x"
       - name: Install azd
-        uses: Azure/setup-azd@v2
+        uses: Azure/setup-azd@9653ee26f515b0ce205579894d4a49400f8da970 # v2
 
       - name: Install GH CLI # Because otherwise this cannot be executed locally with `gh act`
-        uses: dev-hanz-ops/install-gh-cli-action@v0.2.0
+        uses: dev-hanz-ops/install-gh-cli-action@8fff9050dae2d81b38f94500d8b74ad1d1d47410 # v0.2.0
 
       - id: validation
-        uses: microsoft/template-validation-action@v0.3.5
+        uses: microsoft/template-validation-action@e1206403a3695eb48b4426e3ec8b1919101ac770 # v0.3.5
 
       - name: Read file content
         if: always()
