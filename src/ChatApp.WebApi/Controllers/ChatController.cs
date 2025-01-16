@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using ChatApp.WebApi.Agents;
-using ChatApp.WebApi.Interfaces;
 using ChatApp.WebApi.Model;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -15,32 +14,17 @@ namespace ChatApp.WebApi.Controllers;
 [ApiController, Route("[controller]")]
 public class ChatController : ControllerBase
 {
-    private readonly ISemanticKernelApp _semanticKernelApp;
     private readonly CreativeWriterApp _creativeWriterApp;
     private readonly IDeserializer _yamlDeserializer;
 
 
-    public ChatController(ISemanticKernelApp semanticKernelApp, CreativeWriterApp creativeWriterApp)
+    public ChatController(CreativeWriterApp creativeWriterApp)
     {
-        _semanticKernelApp = semanticKernelApp;
         _creativeWriterApp = creativeWriterApp;
 
         _yamlDeserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
-    }
-
-    [HttpPost]
-    [Consumes("application/json")]
-    public async Task<IActionResult> ProcessMessage(AIChatRequest request)
-    {
-        var session = request.SessionState switch
-        {
-            string sessionId => await _semanticKernelApp.GetSession(sessionId),
-            _ => await _semanticKernelApp.CreateSession()
-        };
-        var response = await session.ProcessRequest(request);
-        return Ok(response);
     }
 
     [HttpPost("stream")]
@@ -63,19 +47,15 @@ public class ChatController : ControllerBase
                 await response.Body.FlushAsync();
             }
         }
-        catch (YamlException ex) // TODO: very bad hack, the UI needs to be adopted
+        catch (YamlException ex)
         {
-            var session = request.SessionState switch
+            var delta = new AIChatCompletionDelta(Delta: new AIChatMessageDelta
             {
-                string sessionId => await _semanticKernelApp.GetSession(sessionId),
-                _ => await _semanticKernelApp.CreateSession()
-            };
-
-            await foreach (var delta in session.ProcessStreamingRequest(request))
-            {
-                await response.WriteAsync($"{JsonSerializer.Serialize(delta)}\r\n");
-                await response.Body.FlushAsync();
-            }
+                Role = AIChatRole.System,
+                Content = "Error: Invalid YAML format, Details:  \n" + ex,
+            });
+            await response.WriteAsync($"{JsonSerializer.Serialize(delta)}\r\n");
+            await response.Body.FlushAsync();
         }
     }
 }

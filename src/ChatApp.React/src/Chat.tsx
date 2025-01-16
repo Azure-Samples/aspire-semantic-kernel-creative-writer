@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { Button, ToggleButton } from "@fluentui/react-components";
+import { Button } from "@fluentui/react-components";
 import {
   AIChatMessage,
   AIChatCompletionDelta,
@@ -42,7 +42,6 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
 
   const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState<string>("");
-  const [streaming, setStreaming] = useState<boolean>(true);
   const [sending, setSending] = useState<boolean>(false);
   const inputId = useId();
   const [sessionState, setSessionState] = useState<unknown>(undefined);
@@ -64,57 +63,46 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
 
     setInput("");
     try {
-      if (streaming) {
-        const result = await client.getStreamedCompletion([message], {
-          sessionState: sessionState,
-        });
+      const result = await client.getStreamedCompletion([message], {
+        sessionState: sessionState,
+      });
 
-        let latestMessage: AIAgentChatMessage = {
-          content: "",
-          role: "assistant",
-          context: { name: "dummy" },
-        };
-        for await (const response of result) {
-          debugger;
-          const agentResponse = response as AIAgentChatCompletionDelta;
-          if (agentResponse.sessionState) {
-            setSessionState(agentResponse.sessionState);
-          }
-          if (!agentResponse.delta) {
-            continue;
-          }
-          if (agentResponse.delta.role) {
-            const chatRole = agentResponse.delta.role;
-            const agentName = agentResponse.delta.context?.name;
-            const latestAgentName = latestMessage.context?.name;
+      let latestMessage: AIAgentChatMessage = {
+        content: "",
+        role: "assistant",
+        context: { name: "dummy" },
+      };
+      for await (const response of result) {
+        debugger;
+        const agentResponse = response as AIAgentChatCompletionDelta;
+        if (agentResponse.sessionState) {
+          setSessionState(agentResponse.sessionState);
+        }
+        if (!agentResponse.delta) {
+          continue;
+        }
+        if (agentResponse.delta.role) {
+          const chatRole = agentResponse.delta.role;
+          const agentName = agentResponse.delta.context?.name;
+          const latestAgentName = latestMessage.context?.name;
 
-            // If the role changes or the agent changes, we create a new message
-            if (
-              chatRole != latestMessage.role ||
-              agentName != latestAgentName
-            ) {
-              // If there was a message before, we need to save it
-              if (latestMessage.context?.name != "dummy") {
-                updatedMessages = [...updatedMessages, latestMessage];
-              }
-              latestMessage = {
-                content: agentName ? `**${agentName} Agent:**  \n` : "",
-                role: chatRole,
-                context: agentResponse.delta.context,
-              };
+          // If the role changes or the agent changes, we create a new message
+          if (chatRole != latestMessage.role || agentName != latestAgentName) {
+            // If there was a message before, we need to save it
+            if (latestMessage.context?.name != "dummy") {
+              updatedMessages = [...updatedMessages, latestMessage];
             }
-          }
-          if (agentResponse.delta.content) {
-            latestMessage.content += agentResponse.delta.content;
-            setMessages([...updatedMessages, latestMessage]);
+            latestMessage = {
+              content: agentName ? `**${agentName} Agent:**  \n` : "",
+              role: chatRole,
+              context: agentResponse.delta.context,
+            };
           }
         }
-      } else {
-        const result = await client.getCompletion([message], {
-          sessionState: sessionState,
-        });
-        setSessionState(result.sessionState);
-        setMessages([...updatedMessages, result.message]);
+        if (agentResponse.delta.content) {
+          latestMessage.content += agentResponse.delta.content;
+          setMessages([...updatedMessages, latestMessage]);
+        }
       }
     } catch (e) {
       if (isChatError(e)) {
@@ -177,12 +165,6 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
           maxRows={4}
         />
         <Button onClick={sendMessage}>Send</Button>
-        <ToggleButton
-          checked={streaming}
-          onClick={() => setStreaming(!streaming)}
-        >
-          Streaming
-        </ToggleButton>
       </div>
     </div>
   );

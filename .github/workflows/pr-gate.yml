@@ -33,23 +33,8 @@ jobs:
       - name: Install GH CLI # Because otherwise this cannot be executed locally with `gh act`
         uses: dev-hanz-ops/install-gh-cli-action@v0.2.0
 
-      - name: Get PR branch URL
-        id: get_pr_branch_url
-        run: |
-          PR_REPO_URL="https://github.com/${{ github.event.pull_request.head.repo.full_name }}"
-          PR_BRANCH_NAME=${{ github.event.pull_request.head.ref }}
-          echo "PR_REPO_URL=${PR_REPO_URL}" >> $GITHUB_ENV
-          echo "PR_BRANCH_NAME=${PR_BRANCH_NAME}" >> $GITHUB_ENV
-
       - id: validation
         uses: microsoft/template-validation-action@v0.3.5
-        with:
-          repositoryURL: ${{ env.PR_REPO_URL }}
-          branch: ${{ env.PR_BRANCH_NAME }}
-
-        env:
-          PR_BRANCH_NAME: ${{ env.PR_BRANCH_NAME }}
-          PR_REPO_URL: ${{ env.PR_REPO_URL }}
 
       - name: Read file content
         if: always()

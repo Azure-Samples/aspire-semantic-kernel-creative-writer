@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using ChatApp.WebApi.Model;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;

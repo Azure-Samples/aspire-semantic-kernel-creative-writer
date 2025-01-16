@@ -1,21 +1,23 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 using Microsoft.Extensions.VectorData;
 using Microsoft.SemanticKernel.Data;
-using System.Numerics;
 
 namespace ChatApp.WebApi.Model;
 
 internal sealed class ProductDataModel
 {
     [VectorStoreRecordKey]
-    public string Key { get; set; }
+    public required string Key { get; set; }
 
     [VectorStoreRecordData]
     [TextSearchResultName]
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     [VectorStoreRecordData]
     [TextSearchResultValue]
-    public string Content { get; set; }
+    public required string Content { get; set; }
 
     [VectorStoreRecordVector(3072)]
     public ReadOnlyMemory<float> Embedding { get; set; }

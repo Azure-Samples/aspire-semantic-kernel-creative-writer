@@ -1,13 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Azure;
 using Azure.Identity;
 using ChatApp.WebApi.Agents;
-using ChatApp.WebApi.Interfaces;
 using ChatApp.WebApi.Model;
-using ChatApp.WebApi.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.SemanticKernel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -25,11 +21,6 @@ builder.AddAzureSearchClient("vectorSearch", configureSettings: settings =>
 {
     settings.Credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { ExcludeVisualStudioCredential = true });
 });
-
-builder.Services.AddSingleton<IStateStore<string>>(new InMemoryStore<string>());
-builder.Services.AddSingleton<ISecretStore>(new EnvVarSecretStore());
-//builder.Services.AddSingleton<ISemanticKernelApp, SemanticKernelApp>();
-builder.Services.AddSingleton<ISemanticKernelApp, AgentApp>();
 
 builder.Services.AddKernel()
     .AddAzureOpenAIChatCompletion(builder.Configuration["AzureDeployment"]!)
