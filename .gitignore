@@ -399,3 +399,5 @@ FodyWeavers.xsd
 
 **/appsettings.Development.json
 .azure
+
+src/ChatApp.EvaluationTests/report.html

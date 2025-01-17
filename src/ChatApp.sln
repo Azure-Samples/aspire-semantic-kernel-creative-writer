@@ -1,3 +1,4 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35013.160
@@ -7,6 +8,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatApp.ServiceDefaults", "ChatApp.ServiceDefaults\ChatApp.ServiceDefaults.csproj", "{40B95131-B4D5-4A17-8AF9-8C23EBB6EFFB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatApp.WebApi", "ChatApp.WebApi\ChatApp.WebApi.csproj", "{0E7A4CA7-2BB1-434D-A34C-1B772055BF81}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp.EvaluationTests", "ChatApp.EvaluationTests\ChatApp.EvaluationTests.csproj", "{8048CE1B-0473-477A-A40B-3CA376EC2814}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +29,10 @@ Global
 		{0E7A4CA7-2BB1-434D-A34C-1B772055BF81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E7A4CA7-2BB1-434D-A34C-1B772055BF81}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E7A4CA7-2BB1-434D-A34C-1B772055BF81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8048CE1B-0473-477A-A40B-3CA376EC2814}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8048CE1B-0473-477A-A40B-3CA376EC2814}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8048CE1B-0473-477A-A40B-3CA376EC2814}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8048CE1B-0473-477A-A40B-3CA376EC2814}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -11,7 +11,7 @@ var azureEndpoint = Environment.GetEnvironmentVariable("AzureEndpoint");
 
 var vectorStoreCollectionName = Environment.GetEnvironmentVariable("VectorStoreCollectionName") ?? "products";
 
-var exisitingOpenAi = !builder.Configuration.GetSection("ConnectionStrings")["openAi"].IsNullOrEmpty();
+var exisitingOpenAi = false;//!builder.Configuration.GetSection("ConnectionStrings")["openAi"].IsNullOrEmpty();
 var openAi = !builder.ExecutionContext.IsPublishMode && exisitingOpenAi
     ? builder.AddConnectionString("openAi")
     : builder.AddAzureOpenAI("openAi")

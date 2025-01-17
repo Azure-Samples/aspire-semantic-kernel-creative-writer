@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 using Azure.Identity;
+using ChatApp.ServiceDefaults.Contracts;
 using ChatApp.WebApi.Agents;
-using ChatApp.WebApi.Model;
 using Microsoft.SemanticKernel;
 using System.Text.Json;
 using System.Text.Json.Serialization;

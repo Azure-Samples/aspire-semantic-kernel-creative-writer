@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using ChatApp.ServiceDefaults.Contracts;
 using ChatApp.WebApi.Agents;
 using ChatApp.WebApi.Model;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,6 @@ public class ChatController : ControllerBase
 {
     private readonly CreativeWriterApp _creativeWriterApp;
     private readonly IDeserializer _yamlDeserializer;
-
 
     public ChatController(CreativeWriterApp creativeWriterApp)
     {

@@ -30,13 +30,16 @@ The frontend of the application is developed using React and Vite.
 
 - [Features](#features)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Try it out](#try-it-out)
+  - [Prerequisites for running experiments](#prerequisites-for-running-experiments)
+  - [Try it out (experimentation phase)](#try-it-out-experimentation-phase)
 - [Local Development](#local-development)
-  - [Prerequisites](#prerequisites-1)
+  - [Prerequisites for local development](#prerequisites-for-local-development)
   - [Running the app](#running-the-app)
+  - [Evaluating results](#evaluating-results)
+    - [Running the Evaluation Tests](#running-the-evaluation-tests)
+    - [Generating the Evaluation report](#generating-the-evaluation-report)
 - [Azure Deployment](#azure-deployment)
-  - [Prerequisites](#prerequisites-2)
+  - [Prerequisites for deployment](#prerequisites-for-deployment)
   - [Instructions](#instructions)
 - [Sample Product Data](#sample-product-data)
 - [Guidance](#guidance)
@@ -70,25 +73,24 @@ The first step for getting started with this template are the notebooks which ca
 
 ![Notebook preview](./images/notebook_preview.png)
 
-### Prerequisites
+### Prerequisites for running experiments
 
 - .NET 9 SDK
 - VSCode
   - [Polyglot Notebooks Extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode)
 - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
-- [Node](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 
-### Try it out
+### Try it out (experimentation phase)
 
 Open the notebooks under `./experiments/` and follow their instructions.
 
 ## Local Development
 
-### Prerequisites
+### Prerequisites for local development
 
 - .NET 9 SDK
 - VSCode or Visual Studio 2022 17.12
-- Node.js 22
+- [Node.js 22](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 - [Azure CLI (az)](https://aka.ms/install-azcli)
 - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
 
@@ -135,11 +137,46 @@ If you want to use existing Azure resource, but their endpoints below the Azure 
 }
 ```
 
+### Evaluating results
+
+Creative Writer Assistant uses evaluators to assess application response quality.  
+The 4 metrics the evaluators in this project assess are **Coherence, Fluency, Relevance and Groundedness**.
+
+To understand what is being evaluated open the `.\src\data\test\eval_inputs.json` file.  
+Observe that 3 examples of research, product and assignment context are stored in this file as different scenarios.  
+This data will be sent to the API so that each example will have the evaluations run and will **incoperate all of the context, research, products, and final article when grading the response**.
+
+#### Running the Evaluation Tests
+
+1. Make sure the Creative Writer application is configured and able to run on your local machine before running the tests.  
+   The tests will call into the Creative Writer APIs to collect AI responses using an .NET Aspire test host.
+2. The evaluation process will use the same Azure OpenAI model deployment which is used by the main application.
+3. Run the tests from Visual Studio, VS Code, or `dotnet test`.
+
+#### Generating the Evaluation report
+
+1. Navigate into the `src\ChatApp.EvaluationTests` folder
+2. Update your dotnet tools by running
+
+    ```shell
+    dotnet tool restore
+    ```
+
+3. Run the aieval report command to generate a report file.
+
+    ```shell
+    dotnet aieval report --path .\bin\Debug\net9.0\cache --output .\report.html
+    ```
+
+4. Open the `report.html` file in your web browser.
+
+![AI Evaluations](./images/ai_evaluations.png)
+
 ## Azure Deployment
 
 ![Architecture](./images/container_architecture.png)
 
-### Prerequisites
+### Prerequisites for deployment
 
 - [Azure CLI (az)](https://aka.ms/install-azcli)
 - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
@@ -151,14 +188,14 @@ Navigate into `./ChatApp.AppHost/`.
 
 1. Sign in to your Azure account. You'll need to login to both the Azure Developer CLI and Azure CLI:
 
-    i. First with Azure Developer CLI 
+    i. First with Azure Developer CLI
 
     ```shell
     azd auth login
     ```
 
-    ii. Then sign in with Azure CLI 
-    
+    ii. Then sign in with Azure CLI
+
     ```shell
     az login --use-device-code
     ```
@@ -182,7 +219,7 @@ To load sample product data into Azure AI Search as vector store, use the notebo
 
 This template uses `gpt-4o` and `text-embedding-3-large` which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly
 
-* we recommend using eastus2 or swedencentral
+- we recommend using eastus2 or swedencentral
 
 ### Costs
 

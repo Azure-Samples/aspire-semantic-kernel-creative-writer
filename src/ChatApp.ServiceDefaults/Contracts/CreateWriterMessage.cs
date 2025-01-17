@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace ChatApp.WebApi.Model;
+namespace ChatApp.ServiceDefaults.Contracts;
 
 public sealed class CreateWriterRequest
 {

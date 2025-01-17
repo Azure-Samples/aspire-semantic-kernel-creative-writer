@@ -4,7 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ChatApp.WebApi.Converters;
+namespace ChatApp.ServiceDefaults.Converters;
 
 public class JsonCamelCaseEnumConverter<T> : JsonStringEnumConverter<T> where T : struct, Enum
 {

@@ -8,6 +8,7 @@ using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Plugins.Web.Bing;
 using System.Text.Json;
 using Microsoft.Extensions.VectorData;
+using ChatApp.ServiceDefaults.Contracts;
 
 namespace ChatApp.WebApi.Agents;
 

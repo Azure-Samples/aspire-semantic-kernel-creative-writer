@@ -3,9 +3,9 @@
 
 using System.Text.Json.Serialization;
 
-namespace ChatApp.WebApi.Model;
+namespace ChatApp.ServiceDefaults.Contracts;
 
-public record AIChatCompletionDelta([property: JsonPropertyName("delta")] AIChatMessageDelta Delta)
+public record AIChatCompletion([property: JsonPropertyName("message")] AIChatMessage Message)
 {
     [JsonInclude, JsonPropertyName("sessionState"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SessionState;

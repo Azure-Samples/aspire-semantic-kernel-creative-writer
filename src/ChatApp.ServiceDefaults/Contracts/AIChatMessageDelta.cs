@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace ChatApp.WebApi.Model;
+namespace ChatApp.ServiceDefaults.Contracts;
 
 public struct AIChatMessageDelta
 {
