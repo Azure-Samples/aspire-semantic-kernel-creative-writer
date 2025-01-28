@@ -8,6 +8,8 @@ using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using System.Text;
+using Microsoft.SemanticKernel.PromptTemplates.Liquid;
+using Microsoft.SemanticKernel.Prompty;
 
 namespace ChatApp.WebApi.Agents;
 
@@ -17,10 +19,14 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
     private const string MarketingName = "Marketing";
     private const string WriterName = "Writer";
     private const string EditorName = "Editor";
-
+#pragma warning disable SKEXP0040 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
-        ChatCompletionAgent researcherAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml"))
+        ChatCompletionAgent researcherAgent = new(ReadPromptyFileForTemplateConfig("./Agents/Prompts/researcher.prompty"), new LiquidPromptTemplateFactory())
         {
             Name = ResearcherName,
             Kernel = bingKernel,
@@ -28,7 +34,7 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
             LoggerFactory = bingKernel.LoggerFactory
         };
 
-        ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"))
+        ChatCompletionAgent marketingAgent = new(ReadPromptyFileForTemplateConfig("./Agents/Prompts/marketing.prompty"), new LiquidPromptTemplateFactory())
         {
             Name = MarketingName,
             Kernel = vectorSearchKernel,
@@ -60,7 +66,7 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
             });
         }
 
-        ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"))
+        ChatCompletionAgent writerAgent = new(ReadPromptyFileForTemplateConfig("./Agents/Prompts/writer.prompty"), new LiquidPromptTemplateFactory())
         {
             Name = WriterName,
             Kernel = kernel,
@@ -68,7 +74,7 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
             LoggerFactory = kernel.LoggerFactory
         };
 
-        ChatCompletionAgent editorAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/editor.yaml"))
+        ChatCompletionAgent editorAgent = new(ReadPromptyFileForTemplateConfig("./Agents/Prompts/editor.prompty"), new LiquidPromptTemplateFactory())
         {
             Name = EditorName,
             Kernel = kernel,
@@ -106,6 +112,11 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
     {
         string yaml = File.ReadAllText(fileName);
         return KernelFunctionYaml.ToPromptTemplateConfig(yaml);
+    }
+        private static PromptTemplateConfig ReadPromptyFileForTemplateConfig(string fileName)
+    {
+        string prompty = File.ReadAllText(fileName);
+        return KernelFunctionPrompty.ToPromptTemplateConfig(prompty);
     }
 
     private static KernelArguments CreateFunctionChoiceAutoBehavior()
