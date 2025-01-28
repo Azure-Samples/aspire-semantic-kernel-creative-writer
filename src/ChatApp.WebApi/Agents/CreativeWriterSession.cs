@@ -19,11 +19,7 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
     private const string MarketingName = "Marketing";
     private const string WriterName = "Writer";
     private const string EditorName = "Editor";
-#pragma warning disable SKEXP0040 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
         ChatCompletionAgent researcherAgent = new(ReadPromptyFileForTemplateConfig("./Agents/Prompts/researcher.prompty"), new LiquidPromptTemplateFactory())
@@ -116,7 +112,9 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
         private static PromptTemplateConfig ReadPromptyFileForTemplateConfig(string fileName)
     {
         string prompty = File.ReadAllText(fileName);
+        #pragma warning disable SKEXP0040 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return KernelFunctionPrompty.ToPromptTemplateConfig(prompty);
+        #pragma warning restore SKEXP0040 // Type is for evaluation purposes only and is subject to change or removal in future updates.
     }
 
     private static KernelArguments CreateFunctionChoiceAutoBehavior()
