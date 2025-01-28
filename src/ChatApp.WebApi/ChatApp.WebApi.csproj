@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureAISearch" Version="1.33.0-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="1.33.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.33.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Prompty" Version="1.34.0-alpha" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="YamlDotNet" Version="15.3.0" />
@@ -32,6 +33,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Agents\Prompts\researcher.yaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Agents\Prompts\writer.prompty">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Agents\Prompts\writer.yaml">
