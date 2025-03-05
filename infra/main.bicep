@@ -48,6 +48,8 @@ module openAi 'openAi/openAi.module.bicep' = {
     location: location
     principalId: resources.outputs.MANAGED_IDENTITY_PRINCIPAL_ID
     principalType: 'ServicePrincipal'
+    bingGroundingKey: bingSearch.outputs.bingGroundingKey
+    bingGroundingResourceId: bingSearch.outputs.bingGroundingResourceId
   }
 }
 module vectorSearch 'vectorSearch/vectorSearch.module.bicep' = {

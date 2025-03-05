@@ -22,3 +22,6 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
     }
   }
 }
+
+output bingGroundingKey string = primaryKey
+output bingGroundingResourceId string = bingSearchService.id

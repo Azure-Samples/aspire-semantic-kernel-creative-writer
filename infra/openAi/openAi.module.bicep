@@ -5,6 +5,10 @@ param principalId string
 
 param principalType string
 
+param bingGroundingKey string
+
+param bingGroundingResourceId string
+
 resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: take('openAi-${uniqueString(resourceGroup().id)}', 64)
   location: location
@@ -81,6 +85,51 @@ resource aiFoundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   tags: {
     'aspire-resource-name': 'aiFoundry'
   }
+
+  resource bingConnection 'connections' = {
+    name: 'bingGrounding'
+    properties: {
+      category: 'ApiKey'
+      credentials: {
+        key: bingGroundingKey
+      }
+      isSharedToAll: true
+      metadata: {
+        type: 'bing_grounding'
+        ApiType: 'Azure'
+        ResourceId: bingGroundingResourceId
+      }
+      target: 'https://api.bing.microsoft.com/'
+      authType: 'ApiKey'
+    }
+  }
 }
+
+// resource aiFoundryAsWorkspace 'Microsoft.MachineLearning/workspaces@2019-10-01' existing = {
+//   dependsOn: [
+//     aiFoundry
+//   ]
+//   name: resourceId('Microsoft.MachineLearningServices/workspaces', aiFoundry.name)
+// }
+
+// resource bingConnection 'Microsoft.MachineLearningServices/workspaces/connections@2025-01-01-preview' = {
+//   parent: aiFoundryAsWorkspace
+//   name: 'bingGrounding'
+//   properties: {
+//     category: 'ApiKey'
+//     credentials: {
+//       key: bingGroundingKey
+//     }
+//     isSharedToAll: true
+//     metadata: {
+//       type: 'bing_grounding'
+//       ApiType: 'Azure'
+//       ResourceId: bingGroundingResourceId
+//     }
+//     target: 'https://api.bing.microsoft.com/'
+//     authType: 'ApiKey'
+//   }
+// }
+
 output connectionString string = 'Endpoint=${openAi.properties.endpoint}'
 output aiFoundryConnectionString string = 'Endpoint=${aiFoundry.properties.endpoint}'
