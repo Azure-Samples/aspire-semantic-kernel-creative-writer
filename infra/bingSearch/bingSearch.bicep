@@ -5,9 +5,9 @@ resource bingSearchService 'Microsoft.Bing/accounts@2020-06-10' = {
   name: 'bing-search-${uniqueString(resourceGroup().id)}'
   location: 'global'
   sku: {
-    name: 'S1'
+    name: 'G1'
   }
-  kind: 'Bing.Search.v7'
+  kind: 'Bing.Grounding'
 }
 
 var primaryKey = bingSearchService.listKeys().key1

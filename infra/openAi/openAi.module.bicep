@@ -67,4 +67,20 @@ resource text_embedding_3_large 'Microsoft.CognitiveServices/accounts/deployment
   ]
 }
 
+resource aiFoundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
+  name: take('aiFoundry-${uniqueString(resourceGroup().id)}', 64)
+  location: location
+  kind: 'AIServices'
+  properties: {
+    publicNetworkAccess: 'Enabled'
+    disableLocalAuth: true
+  }
+  sku: {
+    name: 'S0'
+  }
+  tags: {
+    'aspire-resource-name': 'aiFoundry'
+  }
+}
 output connectionString string = 'Endpoint=${openAi.properties.endpoint}'
+output aiFoundryConnectionString string = 'Endpoint=${aiFoundry.properties.endpoint}'
