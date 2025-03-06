@@ -9,6 +9,8 @@ param bingGroundingKey string
 
 param bingGroundingResourceId string
 
+param aiProjectName string = take('aiProject-${uniqueString(resourceGroup().id)}', 64)
+
 resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: take('openAi-${uniqueString(resourceGroup().id)}', 64)
   location: location
@@ -71,22 +73,21 @@ resource text_embedding_3_large 'Microsoft.CognitiveServices/accounts/deployment
   ]
 }
 
-resource aiFoundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-  name: take('aiFoundry-${uniqueString(resourceGroup().id)}', 64)
+resource aiHub 'Microsoft.MachineLearningServices/workspaces@2024-10-01' = {
+  name: take('aiHub-${uniqueString(resourceGroup().id)}', 64)
   location: location
-  kind: 'AIServices'
+  kind: 'Hub'
   properties: {
     publicNetworkAccess: 'Enabled'
-    disableLocalAuth: true
-  }
-  sku: {
-    name: 'S0'
   }
   tags: {
-    'aspire-resource-name': 'aiFoundry'
+    'aspire-resource-name': 'aiHub'
+  }
+  identity: {
+    type: 'SystemAssigned'
   }
 
-  resource bingConnection 'connections' = {
+  resource bingConnection 'connections@2024-10-01' = {
     name: 'bingGrounding'
     properties: {
       category: 'ApiKey'
@@ -103,33 +104,46 @@ resource aiFoundry 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
       authType: 'ApiKey'
     }
   }
+
+  resource aiServicesConnection 'connections@2024-01-01-preview' = {
+    name: 'AzureOpenAI'
+    properties: {
+      category: 'AzureOpenAI'
+      target: openAi.properties.endpoint
+      authType: 'ApiKey'
+      isSharedToAll: true
+      credentials: {
+        key: '${listKeys(openAi.id, '2021-10-01').key1}'
+      }
+      metadata: {
+        ApiType: 'Azure'
+        ResourceId: openAi.id
+      }
+    }
+  }
 }
 
-// resource aiFoundryAsWorkspace 'Microsoft.MachineLearning/workspaces@2019-10-01' existing = {
-//   dependsOn: [
-//     aiFoundry
-//   ]
-//   name: resourceId('Microsoft.MachineLearningServices/workspaces', aiFoundry.name)
-// }
+//for constructing project connection string
+var subscriptionId = subscription().subscriptionId
+var resourceGroupName = resourceGroup().name
+var projectConnectionString = '${location}.api.azureml.ms;${subscriptionId};${resourceGroupName};${aiProjectName}'
 
-// resource bingConnection 'Microsoft.MachineLearningServices/workspaces/connections@2025-01-01-preview' = {
-//   parent: aiFoundryAsWorkspace
-//   name: 'bingGrounding'
-//   properties: {
-//     category: 'ApiKey'
-//     credentials: {
-//       key: bingGroundingKey
-//     }
-//     isSharedToAll: true
-//     metadata: {
-//       type: 'bing_grounding'
-//       ApiType: 'Azure'
-//       ResourceId: bingGroundingResourceId
-//     }
-//     target: 'https://api.bing.microsoft.com/'
-//     authType: 'ApiKey'
-//   }
-// }
+resource aiProject 'Microsoft.MachineLearningServices/workspaces@2023-08-01-preview' = {
+  name: aiProjectName
+  location: location
+  tags: {
+    ProjectConnectionString: projectConnectionString
+    'aspire-resource-name': 'aiProject'
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    // dependent resources
+    hubResourceId: aiHub.id 
+  }
+  kind: 'project'
+}
 
 output connectionString string = 'Endpoint=${openAi.properties.endpoint}'
-output aiFoundryConnectionString string = 'Endpoint=${aiFoundry.properties.endpoint}'
+output aiProjectConnectionString string = projectConnectionString

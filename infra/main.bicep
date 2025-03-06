@@ -73,5 +73,5 @@ output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = resources.output
 output SERVICE_BINDING_KV9B61BEC3_ENDPOINT string = resources.outputs.SERVICE_BINDING_KV9B61BEC3_ENDPOINT
 output SERVICE_BINDING_KV9B61BEC3_NAME string = resources.outputs.SERVICE_BINDING_KV9B61BEC3_NAME
 output OPENAI_CONNECTIONSTRING string = openAi.outputs.connectionString
-output AZUREAI_CONNECTIONSTRING string = openAi.outputs.aiFoundryConnectionString
+output AZUREAIPROJECT_CONNECTIONSTRING string = openAi.outputs.aiProjectConnectionString
 output VECTORSEARCH_CONNECTIONSTRING string = vectorSearch.outputs.connectionString
