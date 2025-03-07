@@ -206,7 +206,7 @@ Navigate into `./ChatApp.AppHost/`.
     ```
 
     This project uses `gpt-4o` which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.  
-    We recommend using *Schweden Central* for this project.
+    We recommend using *Sweden Central* for this project.
 
 ## Sample Product Data
 
