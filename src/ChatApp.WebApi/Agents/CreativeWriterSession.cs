@@ -54,6 +54,9 @@ public class CreativeWriterSession(Kernel kernel, string aiProjectConnectionStri
             LoggerFactory = kernel.LoggerFactory,
         };
 
+        Azure.Response<AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
+        AgentThread thread = threadResponse.Value;
+
         ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"))
         {
             Name = MarketingName,
@@ -63,7 +66,7 @@ public class CreativeWriterSession(Kernel kernel, string aiProjectConnectionStri
         };
 
         StringBuilder sbResearchResults = new();
-        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(Guid.NewGuid().ToString(), new KernelArguments() { { "research_context", createWriterRequest.Research } }))
+        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(thread.Id, new KernelArguments() { { "research_context", createWriterRequest.Research } }))
         {
             sbResearchResults.AppendLine(response.Content);
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
