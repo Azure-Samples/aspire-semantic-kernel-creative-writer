@@ -145,5 +145,16 @@ resource aiProject 'Microsoft.MachineLearningServices/workspaces@2023-08-01-prev
   kind: 'project'
 }
 
+// Azure AI Developer
+resource aiProject_AzureAIDeveloper 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(aiProject.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee'))
+  properties: {
+    principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee')
+    principalType: principalType
+  }
+  scope: aiProject
+}
+
 output connectionString string = 'Endpoint=${openAi.properties.endpoint}'
 output aiProjectConnectionString string = projectConnectionString
