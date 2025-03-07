@@ -33,9 +33,7 @@ var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSea
         };
     });
 
-var bingSearch = builder.AddBicepTemplate("bingSearch", "./BicepTemplates/bingSearch.bicep")
-    .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName);
-var bingAPIKey = bingSearch.GetSecretOutput("bingAPIKey");
+builder.AddConnectionString("aiProject");
 
 var backend = builder.AddProject<Projects.ChatApp_WebApi>("backend")
     .WithReference(openAi)
@@ -43,7 +41,6 @@ var backend = builder.AddProject<Projects.ChatApp_WebApi>("backend")
     .WithEnvironment("AzureDeployment", azureDeployment)
     .WithEnvironment("EmbeddingModelDeployment", embeddingModelDeployment)
     .WithEnvironment("AzureEndpoint", azureEndpoint)
-    .WithEnvironment("BingAPIKey", bingAPIKey)
     .WithEnvironment("VectorStoreCollectionName", vectorStoreCollectionName)
     .WithExternalHttpEndpoints();
 

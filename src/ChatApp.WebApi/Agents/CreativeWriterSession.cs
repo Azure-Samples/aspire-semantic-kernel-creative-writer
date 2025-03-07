@@ -1,17 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Azure.Identity;
 using ChatApp.ServiceDefaults.Contracts;
 using ChatApp.WebApi.Model;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Chat;
+using Microsoft.SemanticKernel.Agents.AzureAI;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using System.Text;
+using Azure.AI.Projects;
 
 namespace ChatApp.WebApi.Agents;
 
-public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vectorSearchKernel)
+public class CreativeWriterSession(Kernel kernel, string aiProjectConnectionString, Kernel vectorSearchKernel)
 {
     private const string ResearcherName = "Researcher";
     private const string MarketingName = "Marketing";
@@ -20,12 +23,35 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
 
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
-        ChatCompletionAgent researcherAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml"))
+        var clientOptions = new AIProjectClientOptions();
+        //clientOptions.AddPolicy(new CustomHeadersPolicy(), HttpPipelinePosition.PerCall);
+        var aIProjectClient = new AIProjectClient(aiProjectConnectionString, new DefaultAzureCredential(), clientOptions);
+
+        AgentsClient agentsClient = aIProjectClient.GetAgentsClient();
+        
+        var bingConnection = await aIProjectClient.GetConnectionsClient().GetConnectionAsync("bingGrounding");
+        var connectionId = bingConnection.Value.Id;
+
+        ToolConnectionList connectionList = new ToolConnectionList
         {
+            ConnectionList = { new ToolConnection(connectionId) }
+        };
+        BingGroundingToolDefinition bingGroundingTool = new BingGroundingToolDefinition(connectionList);
+        var researcherTemplate = ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml");
+        
+        Azure.AI.Projects.Agent model = await agentsClient.CreateAgentAsync(
+            model: "chatdeploymentnew",
+            name: researcherTemplate.Name,
+            description: researcherTemplate.Description,
+            instructions: researcherTemplate.Template,
+            tools: new List<ToolDefinition> { bingGroundingTool }
+        );
+
+        AzureAIAgent researcherAgent = new(model, agentsClient)  {
             Name = ResearcherName,
-            Kernel = bingKernel,
+            Kernel = kernel,
             Arguments = CreateFunctionChoiceAutoBehavior(),
-            LoggerFactory = bingKernel.LoggerFactory
+            LoggerFactory = kernel.LoggerFactory,
         };
 
         ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"))
@@ -37,7 +63,7 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
         };
 
         StringBuilder sbResearchResults = new();
-        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync([], new() { { "research_context", createWriterRequest.Research } }))
+        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(Guid.NewGuid().ToString(), new KernelArguments() { { "research_context", createWriterRequest.Research } }))
         {
             sbResearchResults.AppendLine(response.Content);
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
@@ -116,7 +142,7 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
     private sealed class NoFeedbackLeftTerminationStrategy : TerminationStrategy
     {
         // Terminate when the final message contains the term "Article accepted, no further rework necessary." - all done
-        protected override Task<bool> ShouldAgentTerminateAsync(Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
+        protected override Task<bool> ShouldAgentTerminateAsync(Microsoft.SemanticKernel.Agents.Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
         {
             if (agent.Name != EditorName)
                 return Task.FromResult(false);

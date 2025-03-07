@@ -25,9 +25,6 @@ properties:
         value: '{{ .Env.OPENAI_CONNECTIONSTRING }}'
       - name: connectionstrings--vectorsearch
         value: '{{ .Env.VECTORSEARCH_CONNECTIONSTRING }}'
-      - name: bingapikey
-        keyVaultUrl: '{{ .Env.SERVICE_BINDING_KV9B61BEC3_ENDPOINT }}secrets/bingAPIKey'
-        identity: {{ .Env.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}
   template:
     containers:
       - image: {{ .Image }}
@@ -57,8 +54,8 @@ properties:
             secretRef: connectionstrings--openai
           - name: ConnectionStrings__vectorSearch
             secretRef: connectionstrings--vectorsearch
-          - name: BingAPIKey
-            secretRef: bingapikey
+          - name: ConnectionStrings__aiProject
+            value: '{{ .Env.AZUREAIPROJECT_CONNECTIONSTRING }}'
     scale:
       minReplicas: 1
 tags:

@@ -18,16 +18,10 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
     {
         defaultKernel.FunctionInvocationFilters.Add(new FunctionInvocationFilter(response));
 
-        Kernel bingKernel = defaultKernel.Clone();
-
-        BingTextSearch textSearch = new(apiKey: configuration["BingAPIKey"]!);
-        KernelPlugin searchPlugin = textSearch.CreateWithSearch("BingSearchPlugin");
-        bingKernel.Plugins.Add(searchPlugin);
-
         Kernel vectorSearchKernel = defaultKernel.Clone();
         await ConfigureVectorSearchKernel(vectorSearchKernel);
 
-        return new CreativeWriterSession(defaultKernel, bingKernel, vectorSearchKernel);
+        return new CreativeWriterSession(defaultKernel, configuration.GetConnectionString("aiProject")!, vectorSearchKernel);
     }
 
     private async Task ConfigureVectorSearchKernel(Kernel vectorSearchKernel)
