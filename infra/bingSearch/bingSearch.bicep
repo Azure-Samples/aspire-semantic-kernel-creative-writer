@@ -2,7 +2,7 @@ param location string = resourceGroup().location
 param keyVaultName string
 
 resource bingSearchService 'Microsoft.Bing/accounts@2020-06-10' = {
-  name: 'bing-search-${uniqueString(resourceGroup().id)}'
+  name: 'bing-grounding-${uniqueString(resourceGroup().id)}'
   location: 'global'
   sku: {
     name: 'G1'
