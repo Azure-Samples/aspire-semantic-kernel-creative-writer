@@ -33,23 +33,14 @@ module resources 'resources.bicep' = {
   }
 }
 
-module bingSearch 'bingSearch/bingSearch.bicep' = {
-  name: 'bingSearch'
-  scope: rg
-  params: {
-    keyVaultName: resources.outputs.SERVICE_BINDING_KV9B61BEC3_NAME
-    location: location
-  }
-}
-module openAi 'openAi/openAi.module.bicep' = {
-  name: 'openAi'
+module openAi 'openAi_bingSearch/openAi_bingSearch.module.bicep' = {
+  name: 'openAi_bingSearch'
   scope: rg
   params: {
     location: location
     principalId: resources.outputs.MANAGED_IDENTITY_PRINCIPAL_ID
     principalType: 'ServicePrincipal'
-    bingGroundingKey: bingSearch.outputs.bingGroundingKey
-    bingGroundingResourceId: bingSearch.outputs.bingGroundingResourceId
+    keyVaultName: resources.outputs.SERVICE_BINDING_KV9B61BEC3_NAME
   }
 }
 module vectorSearch 'vectorSearch/vectorSearch.module.bicep' = {

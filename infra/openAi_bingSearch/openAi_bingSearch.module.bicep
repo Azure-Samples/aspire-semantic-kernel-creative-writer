@@ -5,11 +5,33 @@ param principalId string
 
 param principalType string
 
-param bingGroundingKey string
-
-param bingGroundingResourceId string
+param keyVaultName string
 
 param aiProjectName string = take('aiProject-${uniqueString(resourceGroup().id)}', 64)
+
+resource bingSearchService 'Microsoft.Bing/accounts@2020-06-10' = {
+  name: 'bing-grounding-${uniqueString(resourceGroup().id)}'
+  location: 'global'
+  sku: {
+    name: 'G1'
+  }
+  kind: 'Bing.Grounding'
+}
+
+var primaryKey = bingSearchService.listKeys().key1
+
+resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: keyVaultName
+
+  resource secret 'secrets@2023-07-01' = {
+    name: 'bingAPIKey'
+    properties: {
+      value: primaryKey
+    }
+  }
+}
+
+output bingGroundingResourceId string = bingSearchService.id
 
 resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: take('openAi-${uniqueString(resourceGroup().id)}', 64)
@@ -92,13 +114,13 @@ resource aiHub 'Microsoft.MachineLearningServices/workspaces@2024-10-01' = {
     properties: {
       category: 'ApiKey'
       credentials: {
-        key: bingGroundingKey
+        key: primaryKey
       }
       isSharedToAll: true
       metadata: {
         type: 'bing_grounding'
         ApiType: 'Azure'
-        ResourceId: bingGroundingResourceId
+        ResourceId: bingSearchService.id
       }
       target: 'https://api.bing.microsoft.com/'
       authType: 'ApiKey'
