@@ -47,7 +47,10 @@ public class CreativeWriterSession(Kernel kernel, string aiProjectConnectionStri
             tools: new List<ToolDefinition> { bingGroundingTool }
         );
 
-        AzureAIAgent researcherAgent = new(model, agentsClient)  {
+        AzureAIAgent researcherAgent = new(model,
+                                           agentsClient,
+                                           templateFactory: new KernelPromptTemplateFactory(),
+                                           templateFormat: PromptTemplateConfig.SemanticKernelTemplateFormat)  {
             Name = ResearcherName,
             Kernel = kernel,
             Arguments = CreateFunctionChoiceAutoBehavior(),
