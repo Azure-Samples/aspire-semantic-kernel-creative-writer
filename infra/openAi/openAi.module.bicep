@@ -49,7 +49,7 @@ resource chatdeploymentnew 'Microsoft.CognitiveServices/accounts/deployments@202
   }
   sku: {
     name: 'Standard'
-    capacity: 10
+    capacity: 20
   }
   parent: openAi
 }
