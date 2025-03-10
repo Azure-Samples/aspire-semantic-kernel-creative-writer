@@ -20,8 +20,8 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
 
         Kernel vectorSearchKernel = defaultKernel.Clone();
         await ConfigureVectorSearchKernel(vectorSearchKernel);
-
-        return new CreativeWriterSession(defaultKernel, configuration.GetConnectionString("aiProject")!, vectorSearchKernel);
+        
+        return new CreativeWriterSession(defaultKernel, configuration.GetConnectionString("aiProject")!, configuration.GetValue<string>("OPENAI_MODEL_DEPLOYMENT")!, vectorSearchKernel);
     }
 
     private async Task ConfigureVectorSearchKernel(Kernel vectorSearchKernel)

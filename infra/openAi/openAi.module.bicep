@@ -164,5 +164,6 @@ resource aoai_AzureAIDeveloper 'Microsoft.Authorization/roleAssignments@2022-04-
   scope: openAi
 }
 
+output modelDeployment string = chatdeploymentnew.name
 output connectionString string = 'Endpoint=${openAi.properties.endpoint}'
 output aiProjectConnectionString string = projectConnectionString

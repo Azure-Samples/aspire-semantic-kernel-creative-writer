@@ -14,7 +14,7 @@ using Azure.AI.Projects;
 
 namespace ChatApp.WebApi.Agents;
 
-public class CreativeWriterSession(Kernel kernel, string aiProjectConnectionString, Kernel vectorSearchKernel)
+public class CreativeWriterSession(Kernel kernel, string aiProjectConnectionString, string aiModelDeployment, Kernel vectorSearchKernel)
 {
     private const string ResearcherName = "Researcher";
     private const string MarketingName = "Marketing";
@@ -40,7 +40,7 @@ public class CreativeWriterSession(Kernel kernel, string aiProjectConnectionStri
         var researcherTemplate = ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml");
         
         Azure.AI.Projects.Agent model = await agentsClient.CreateAgentAsync(
-            model: "chatdeploymentnew",
+            model: aiModelDeployment,
             name: researcherTemplate.Name,
             description: researcherTemplate.Description,
             instructions: researcherTemplate.Template,

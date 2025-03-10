@@ -56,6 +56,8 @@ properties:
             secretRef: connectionstrings--vectorsearch
           - name: ConnectionStrings__aiProject
             value: '{{ .Env.AZUREAIPROJECT_CONNECTIONSTRING }}'
+          - name: OPENAI_MODEL_DEPLOYMENT
+            value: '{{ .Env.OPENAI_MODEL_DEPLOYMENT }}'
     scale:
       minReplicas: 1
 tags:
