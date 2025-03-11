@@ -18,15 +18,13 @@ resource bingSearchService 'Microsoft.Bing/accounts@2020-06-10' = {
   kind: 'Bing.Grounding'
 }
 
-var primaryKey = bingSearchService.listKeys().key1
-
 resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
 
   resource secret 'secrets@2023-07-01' = {
     name: 'bingAPIKey'
     properties: {
-      value: primaryKey
+      value: bingSearchService.listKeys().key1
     }
   }
 }
@@ -114,7 +112,7 @@ resource aiHub 'Microsoft.MachineLearningServices/workspaces@2024-10-01' = {
     properties: {
       category: 'ApiKey'
       credentials: {
-        key: primaryKey
+        key: bingSearchService.listKeys().key1
       }
       isSharedToAll: true
       metadata: {
