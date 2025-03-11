@@ -4,7 +4,7 @@ description: >-
   This writer agent takes a request from a user as well as research provider by a web researcher to produce a document.
 input_variables:
   - name: research_context
-    description: Coontext used for research
+    description: Context used for research
     is_required: true
 template: |
   # Writer Agent
@@ -50,7 +50,7 @@ template: |
   Please format the article as markdown but do not include ```markdown``` in the document. 
 
   # Review Feedback
-  If you recieved any feedback, your sole responsiblity is to rewrite the article according to review suggestions.
+  If you received any feedback, your sole responsibility is to rewrite the article according to review suggestions.
   - Always apply all review direction
   - Always revise the content in its entirety without explanation
   - Never address the user

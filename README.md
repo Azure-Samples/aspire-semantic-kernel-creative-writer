@@ -9,7 +9,6 @@ languages:
 products:
 - ai-services
 - azure
-- azure-bing-web
 - azure-cognitive-search
 - azure-container-apps
 - azure-openai
@@ -211,7 +210,7 @@ Navigate into `./ChatApp.AppHost/`.
 
 ## Sample Product Data
 
-To load sample product data into Azure AI Search as vector store, use the notebook inside `./data/`.
+To load sample product data into Azure AI Search as vector store, use the notebook inside `./src/data/`.
 
 ## Guidance
 
