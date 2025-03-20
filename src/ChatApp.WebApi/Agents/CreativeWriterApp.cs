@@ -76,7 +76,7 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
             LoggerFactory = defaultKernel.LoggerFactory,
         };
 
-        ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"))
+        ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"), templateFactory: new KernelPromptTemplateFactory())
         {
             Name = MarketingName,
             Kernel = _vectorSearchKernel,
@@ -84,7 +84,7 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
             LoggerFactory = _vectorSearchKernel.LoggerFactory
         };
 
-        ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"))
+        ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"),templateFactory: new KernelPromptTemplateFactory())
         {
             Name = WriterName,
             Kernel = defaultKernel,
@@ -92,7 +92,7 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
             LoggerFactory = defaultKernel.LoggerFactory
         };
 
-        ChatCompletionAgent editorAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/editor.yaml"))
+        ChatCompletionAgent editorAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/editor.yaml"), templateFactory: new KernelPromptTemplateFactory())
         {
             Name = EditorName,
             Kernel = defaultKernel,
