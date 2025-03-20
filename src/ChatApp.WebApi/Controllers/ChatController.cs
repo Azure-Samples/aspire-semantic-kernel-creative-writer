@@ -16,13 +16,11 @@ namespace ChatApp.WebApi.Controllers;
 public class ChatController : ControllerBase
 {
     private readonly CreativeWriterApp _creativeWriterApp;
-    private readonly CreativeWriterSession _creativeWriterSession;
     private readonly IDeserializer _yamlDeserializer;
 
     public ChatController(CreativeWriterApp creativeWriterApp)
     {
         _creativeWriterApp = creativeWriterApp;
-        _creativeWriterSession = _creativeWriterApp.CreateSessionAsync().Result;
 
         _yamlDeserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -36,14 +34,15 @@ public class ChatController : ControllerBase
         var response = Response;
         response.Headers.Append("Content-Type", "application/x-ndjson");
 
+        _creativeWriterApp.SetResponseForSession(Response);
+        var session = await _creativeWriterApp.CreateSessionAsync();
+
         try
         {
             var userInput = request.Messages.Last();
             CreateWriterRequest createWriterRequest = _yamlDeserializer.Deserialize<CreateWriterRequest>(userInput.Content);
 
-            _creativeWriterApp.SetResponseForSession(Response);
-
-            await foreach (var delta in _creativeWriterSession.ProcessStreamingRequest(createWriterRequest))
+            await foreach (var delta in session.ProcessStreamingRequest(createWriterRequest))
             {
                 await response.WriteAsync($"{JsonSerializer.Serialize(delta)}\r\n");
                 await response.Body.FlushAsync();
@@ -58,6 +57,10 @@ public class ChatController : ControllerBase
             });
             await response.WriteAsync($"{JsonSerializer.Serialize(delta)}\r\n");
             await response.Body.FlushAsync();
+        }
+        finally
+        {
+            await session.CleanupAgentsAsync();
         }
     }
 }

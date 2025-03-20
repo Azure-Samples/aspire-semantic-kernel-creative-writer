@@ -17,7 +17,7 @@ using ChatApp.ServiceDefaults.Contracts;
 
 namespace ChatApp.WebApi.Agents;
 
-public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuration)
+public class CreativeWriterApp
 {
     public const string ResearcherName = "Researcher";
     public const string MarketingName = "Marketing";
@@ -25,6 +25,19 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
     public const string EditorName = "Editor";
 
     private Kernel? _vectorSearchKernel;
+    private AIProjectClient _aIProjectClient;
+    private AgentsClient _agentsClient;
+    private Kernel defaultKernel;
+    private IConfiguration configuration;
+
+    public CreativeWriterApp(Kernel defaultKernel, IConfiguration configuration)
+    {
+        this.defaultKernel = defaultKernel;
+        this.configuration = configuration;
+        var clientOptions = new AIProjectClientOptions();
+        _aIProjectClient = new AIProjectClient(configuration.GetConnectionString("aiProject")!, new DefaultAzureCredential(), clientOptions);
+        _agentsClient = _aIProjectClient.GetAgentsClient();
+    }
 
     internal void SetResponseForSession(HttpResponse response)
     {
@@ -41,13 +54,7 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
         _vectorSearchKernel = defaultKernel.Clone();
         await ConfigureVectorSearchKernel(_vectorSearchKernel);
         
-        var clientOptions = new AIProjectClientOptions();
-        //clientOptions.AddPolicy(new CustomHeadersPolicy(), HttpPipelinePosition.PerCall);
-        var aIProjectClient = new AIProjectClient(configuration.GetConnectionString("aiProject")!, new DefaultAzureCredential(), clientOptions);
-
-        AgentsClient agentsClient = aIProjectClient.GetAgentsClient();
-        
-        var bingConnection = await aIProjectClient.GetConnectionsClient().GetConnectionAsync("bingGrounding");
+        var bingConnection = await _aIProjectClient.GetConnectionsClient().GetConnectionAsync("bingGrounding");
         var connectionId = bingConnection.Value.Id;
 
         ToolConnectionList connectionList = new ToolConnectionList
@@ -57,8 +64,7 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
         BingGroundingToolDefinition bingGroundingTool = new BingGroundingToolDefinition(connectionList);
         var researcherTemplate = ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml");
         
-        // curious on when to delete 
-        Azure.AI.Projects.Agent rAgent = await agentsClient.CreateAgentAsync(
+        var rAgent = await _agentsClient.CreateAgentAsync(
             model: configuration.GetValue<string>("OPENAI_MODEL_DEPLOYMENT")!,
             name: researcherTemplate.Name,
             description: researcherTemplate.Description,
@@ -67,7 +73,7 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
         );
 
         AzureAIAgent researcherAgent = new(rAgent,
-                                           agentsClient,
+                                           _agentsClient,
                                            templateFactory: new KernelPromptTemplateFactory(),
                                            templateFormat: PromptTemplateConfig.SemanticKernelTemplateFormat)  {
             Name = ResearcherName,
@@ -99,7 +105,7 @@ public class CreativeWriterApp(Kernel defaultKernel, IConfiguration configuratio
             LoggerFactory = defaultKernel.LoggerFactory
         };
 
-        return new CreativeWriterSession(defaultKernel, agentsClient, researcherAgent, marketingAgent, writerAgent, editorAgent);
+        return new CreativeWriterSession(defaultKernel, _agentsClient, researcherAgent, marketingAgent, writerAgent, editorAgent);
     }
 
     private async Task ConfigureVectorSearchKernel(Kernel vectorSearchKernel)

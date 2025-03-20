@@ -81,4 +81,8 @@ public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient
             return Task.FromResult(history[history.Count - 1].Content?.Contains("Article accepted", StringComparison.OrdinalIgnoreCase) ?? false);
         }
     }
+
+    public async Task CleanupAgentsAsync() {
+        await agentsClient.DeleteAgentAsync(researcherAgent.Id);
+    }
 }
