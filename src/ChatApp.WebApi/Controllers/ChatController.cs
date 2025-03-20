@@ -34,7 +34,6 @@ public class ChatController : ControllerBase
         var response = Response;
         response.Headers.Append("Content-Type", "application/x-ndjson");
 
-        _creativeWriterApp.SetResponseForSession(Response);
         var session = await _creativeWriterApp.CreateSessionAsync();
 
         try
