@@ -204,8 +204,9 @@ Navigate into `./ChatApp.AppHost/`.
     ```shell
     azd up
     ```
+    > Disclaimer: Azure AI Service is currently in preview as well as the Semantic Kernel Agent SDKs we are leveraging in this project.
 
-    This project uses `gpt-4o` which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.  
+    This project uses `gpt-4o` and `Azure AI Agent Service` which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/en-us/azure/ai-services/agents/concepts/model-region-support#azure-openai-models) and select a region during deployment accordingly.  
     We recommend using *Sweden Central* for this project.
 
 ## Sample Product Data
