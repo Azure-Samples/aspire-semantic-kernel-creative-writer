@@ -59,7 +59,8 @@ public class ChatController : ControllerBase
         }
         finally
         {
-            await session.CleanupAgentsAsync();
+            // cleanup the session. e.g. delete the AI Agent Service Agent
+            await session.CleanupSessionAsync();
         }
     }
 }
