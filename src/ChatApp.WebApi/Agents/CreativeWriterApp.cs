@@ -35,7 +35,7 @@ public class CreativeWriterApp
         this.defaultKernel = defaultKernel;
         this.configuration = configuration;
         var clientOptions = new AIProjectClientOptions();
-        _aIProjectClient = new AIProjectClient(configuration.GetConnectionString("aiProject")!, new DefaultAzureCredential(), clientOptions);
+        _aIProjectClient = new AIProjectClient(configuration.GetValue<string>("AIProjectConnectionString")!, new DefaultAzureCredential(), clientOptions);
         _agentsClient = _aIProjectClient.GetAgentsClient();
     }
 
@@ -67,7 +67,7 @@ public class CreativeWriterApp
         // for the ease of the demo, we are creating an Agent in Azure AI Agent Service for every session and deleting it after the session finished
         // for production, you can want to create an agent once and reuse them
         var rAgent = await _agentsClient.CreateAgentAsync(
-            model: configuration.GetValue<string>("OPENAI_MODEL_DEPLOYMENT")!,
+            model: configuration.GetValue<string>("ModelDeployment")!,
             name: researcherTemplate.Name,
             description: researcherTemplate.Description,
             instructions: researcherTemplate.Template,

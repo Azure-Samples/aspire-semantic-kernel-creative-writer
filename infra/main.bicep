@@ -22,7 +22,6 @@ resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   location: location
   tags: tags
 }
-
 module resources 'resources.bicep' = {
   scope: rg
   name: 'resources'
@@ -33,14 +32,14 @@ module resources 'resources.bicep' = {
   }
 }
 
-module openAi 'openAi_bingSearch/openAi_bingSearch.module.bicep' = {
-  name: 'openAi_bingSearch'
+module aoiabing 'aoiabing/openAi_bingSearch.module.bicep' = {
+  name: 'aoiabing'
   scope: rg
   params: {
+    keyVaultName: resources.outputs.SERVICE_BINDING_KV7ADE0065_NAME
     location: location
     principalId: resources.outputs.MANAGED_IDENTITY_PRINCIPAL_ID
     principalType: 'ServicePrincipal'
-    keyVaultName: resources.outputs.SERVICE_BINDING_KV9B61BEC3_NAME
   }
 }
 module vectorSearch 'vectorSearch/vectorSearch.module.bicep' = {
@@ -52,6 +51,7 @@ module vectorSearch 'vectorSearch/vectorSearch.module.bicep' = {
     principalType: 'ServicePrincipal'
   }
 }
+
 output MANAGED_IDENTITY_CLIENT_ID string = resources.outputs.MANAGED_IDENTITY_CLIENT_ID
 output MANAGED_IDENTITY_NAME string = resources.outputs.MANAGED_IDENTITY_NAME
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = resources.outputs.AZURE_LOG_ANALYTICS_WORKSPACE_NAME
@@ -61,9 +61,9 @@ output AZURE_CONTAINER_REGISTRY_NAME string = resources.outputs.AZURE_CONTAINER_
 output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_NAME
 output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
-output SERVICE_BINDING_KV9B61BEC3_ENDPOINT string = resources.outputs.SERVICE_BINDING_KV9B61BEC3_ENDPOINT
-output SERVICE_BINDING_KV9B61BEC3_NAME string = resources.outputs.SERVICE_BINDING_KV9B61BEC3_NAME
-output OPENAI_CONNECTIONSTRING string = openAi.outputs.connectionString
-output OPENAI_MODEL_DEPLOYMENT string = openAi.outputs.modelDeployment
-output AZUREAIPROJECT_CONNECTIONSTRING string = openAi.outputs.aiProjectConnectionString
+output SERVICE_BINDING_KV7ADE0065_ENDPOINT string = resources.outputs.SERVICE_BINDING_KV7ADE0065_ENDPOINT
+output SERVICE_BINDING_KV7ADE0065_NAME string = resources.outputs.SERVICE_BINDING_KV7ADE0065_NAME
+output AOIABING_AIPROJECTCONNECTIONSTRING string = aoiabing.outputs.aiProjectConnectionString
+output AOIABING_CONNECTIONSTRING string = aoiabing.outputs.connectionString
+output AOIABING_MODELDEPLOYMENT string = aoiabing.outputs.modelDeployment
 output VECTORSEARCH_CONNECTIONSTRING string = vectorSearch.outputs.connectionString

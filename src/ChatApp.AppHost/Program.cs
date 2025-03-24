@@ -11,12 +11,10 @@ var azureEndpoint = Environment.GetEnvironmentVariable("AzureEndpoint");
 
 var vectorStoreCollectionName = Environment.GetEnvironmentVariable("VectorStoreCollectionName") ?? "products";
 
-var exisitingOpenAi = false;//!builder.Configuration.GetSection("ConnectionStrings")["openAi"].IsNullOrEmpty();
-var openAi = !builder.ExecutionContext.IsPublishMode && exisitingOpenAi
-    ? builder.AddConnectionString("openAi")
-    : builder.AddAzureOpenAI("openAi")
-        .AddDeployment(new AzureOpenAIDeployment(azureDeployment, "gpt-4o", "2024-05-13", "Standard", 10))
-        .AddDeployment(new AzureOpenAIDeployment(embeddingModelDeployment, "text-embedding-3-large", "1"));
+var agentModelBingDeployment = builder.AddBicepTemplate("aoiabing", "./BicepTemplates/openAi_bingSearch.module.bicep")
+    .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+    .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+    .WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
 
 var exisitingVectorSearch = !builder.Configuration.GetSection("ConnectionStrings")["vectorSearch"].IsNullOrEmpty();
 var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSearch
@@ -33,15 +31,15 @@ var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSea
         };
     });
 
-builder.AddConnectionString("aiProject");
-
 var backend = builder.AddProject<Projects.ChatApp_WebApi>("backend")
-    .WithReference(openAi)
     .WithReference(vectorSearch)
     .WithEnvironment("AzureDeployment", azureDeployment)
     .WithEnvironment("EmbeddingModelDeployment", embeddingModelDeployment)
     .WithEnvironment("AzureEndpoint", azureEndpoint)
     .WithEnvironment("VectorStoreCollectionName", vectorStoreCollectionName)
+    .WithEnvironment("OpenAIConnectionString", agentModelBingDeployment.GetOutput("connectionString"))
+    .WithEnvironment("ModelDeployment", agentModelBingDeployment.GetOutput("modelDeployment"))
+    .WithEnvironment("AIProjectConnectionString", agentModelBingDeployment.GetOutput("aiProjectConnectionString"))
     .WithExternalHttpEndpoints();
 
 var frontend = builder.AddNpmApp("frontend", "../ChatApp.React")

@@ -21,10 +21,10 @@ properties:
       - server: {{ .Env.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
         identity: {{ .Env.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}
     secrets:
-      - name: connectionstrings--openai
-        value: '{{ .Env.OPENAI_CONNECTIONSTRING }}'
       - name: connectionstrings--vectorsearch
         value: '{{ .Env.VECTORSEARCH_CONNECTIONSTRING }}'
+      - name: openaiconnectionstring
+        value: '{{ .Env.AOIABING_CONNECTIONSTRING }}'
   template:
     containers:
       - image: {{ .Image }}
@@ -32,6 +32,8 @@ properties:
         env:
           - name: AZURE_CLIENT_ID
             value: {{ .Env.MANAGED_IDENTITY_CLIENT_ID }}
+          - name: AIProjectConnectionString
+            value: '{{ .Env.AOIABING_AIPROJECTCONNECTIONSTRING }}'
           - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
             value: "true"
           - name: AzureDeployment
@@ -42,6 +44,8 @@ properties:
             value: text-embedding-3-large
           - name: HTTP_PORTS
             value: '{{ targetPortOrDefault 0 }}'
+          - name: ModelDeployment
+            value: '{{ .Env.AOIABING_MODELDEPLOYMENT }}'
           - name: OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES
             value: "true"
           - name: OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES
@@ -50,14 +54,10 @@ properties:
             value: in_memory
           - name: VectorStoreCollectionName
             value: products
-          - name: ConnectionStrings__openAi
-            secretRef: connectionstrings--openai
           - name: ConnectionStrings__vectorSearch
             secretRef: connectionstrings--vectorsearch
-          - name: ConnectionStrings__aiProject
-            value: '{{ .Env.AZUREAIPROJECT_CONNECTIONSTRING }}'
-          - name: OPENAI_MODEL_DEPLOYMENT
-            value: '{{ .Env.OPENAI_MODEL_DEPLOYMENT }}'
+          - name: OpenAIConnectionString
+            secretRef: openaiconnectionstring
     scale:
       minReplicas: 1
 tags:
