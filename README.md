@@ -24,8 +24,9 @@ description: "Comprehensive example of a multi-agent chat application built with
 
 This project is an alternative to the python version at <https://github.com/Azure-Samples/contoso-creative-writer>.
 
-It is a comprehensive example of a chat application built with .NET Aspire, Semantic Kernel, and the `@microsoft/ai-chat-protocol` package.  
-The frontend of the application is developed using React and Vite.
+It is a comprehensive example of a chat application built with .NET Aspire, Semantic Kernel, and the `@microsoft/ai-chat-protocol` package. The frontend of the application is developed using React and Vite.
+
+Underneath it uses an Azure AI Foundry hub & project, Azure AI Agent Service with a standard agent setup, Bing Search and Azure AI Search for grounding.
 
 - [Features](#features)
 - [Getting Started](#getting-started)
@@ -118,7 +119,7 @@ Example to add into a `appsettings.Development.json` in the `ChatApp.AppHost` di
 }
 ```
 
-If you want to use existing Azure resource, but their endpoints below the Azure section:
+If you want to use existing Azure resource, put their endpoints below the Azure section:
 
 ```json
 {
