@@ -98,7 +98,7 @@ Open the notebooks under `./experiments/` and follow their instructions.
 
 If using Visual Studio, open the solution file `ChatApp.sln` and launch/debug the `ChatApp.AppHost` project.
 
-If using the .NET CLI, run dotnet run from the `ChatApp.AppHost` directory.
+If using the .NET CLI, run `dotnet run` from the `ChatApp.AppHost` directory.
 
 For more information on local provisioning of Aspire applications, refer to the [Aspire Local Provisioning Guide](https://learn.microsoft.com/en-us/dotnet/aspire/deployment/azure/local-provisioning).
 

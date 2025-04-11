@@ -37,7 +37,7 @@ var backend = builder.AddProject<Projects.ChatApp_WebApi>("backend")
     .WithEnvironment("EmbeddingModelDeployment", embeddingModelDeployment)
     .WithEnvironment("AzureEndpoint", azureEndpoint)
     .WithEnvironment("VectorStoreCollectionName", vectorStoreCollectionName)
-    .WithEnvironment("OpenAIConnectionString", agentModelBingDeployment.GetOutput("connectionString"))
+    .WithEnvironment("ConnectionStrings__openAi", agentModelBingDeployment.GetOutput("connectionString"))
     .WithEnvironment("ModelDeployment", agentModelBingDeployment.GetOutput("modelDeployment"))
     .WithEnvironment("AIProjectConnectionString", agentModelBingDeployment.GetOutput("aiProjectConnectionString"))
     .WithExternalHttpEndpoints();

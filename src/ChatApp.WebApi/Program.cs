@@ -14,7 +14,6 @@ builder.AddServiceDefaults();
 
 builder.AddAzureOpenAIClient("openAi", configureSettings: settings =>
 {
-    settings.Endpoint = new Uri(builder.Configuration["OpenAIConnectionString"]!);
     settings.Credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { ExcludeVisualStudioCredential = true });
 });
 
