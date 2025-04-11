@@ -21,10 +21,10 @@ properties:
       - server: {{ .Env.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
         identity: {{ .Env.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}
     secrets:
+      - name: connectionstrings--openai
+        value: '{{ .Env.AOIABING_CONNECTIONSTRING }}'
       - name: connectionstrings--vectorsearch
         value: '{{ .Env.VECTORSEARCH_CONNECTIONSTRING }}'
-      - name: openaiconnectionstring
-        value: '{{ .Env.AOIABING_CONNECTIONSTRING }}'
   template:
     containers:
       - image: {{ .Image }}
@@ -54,10 +54,10 @@ properties:
             value: in_memory
           - name: VectorStoreCollectionName
             value: products
+          - name: ConnectionStrings__openAi
+            secretRef: connectionstrings--openai
           - name: ConnectionStrings__vectorSearch
             secretRef: connectionstrings--vectorsearch
-          - name: OpenAIConnectionString
-            secretRef: openaiconnectionstring
     scale:
       minReplicas: 1
 tags:
