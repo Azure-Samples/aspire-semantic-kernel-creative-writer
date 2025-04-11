@@ -2,48 +2,31 @@
 // Licensed under the MIT License.
 
 using ChatApp.ServiceDefaults.Contracts;
-using ChatApp.WebApi.Model;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Chat;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using Microsoft.SemanticKernel.Agents.AzureAI;
 using System.Text;
 
 namespace ChatApp.WebApi.Agents;
 
-public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vectorSearchKernel)
+public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient agentsClient, AzureAIAgent researcherAgent, ChatCompletionAgent marketingAgent, ChatCompletionAgent writerAgent, ChatCompletionAgent editorAgent)
 {
-    private const string ResearcherName = "Researcher";
-    private const string MarketingName = "Marketing";
-    private const string WriterName = "Writer";
-    private const string EditorName = "Editor";
 
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
-        ChatCompletionAgent researcherAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml"))
-        {
-            Name = ResearcherName,
-            Kernel = bingKernel,
-            Arguments = CreateFunctionChoiceAutoBehavior(),
-            LoggerFactory = bingKernel.LoggerFactory
-        };
-
-        ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"))
-        {
-            Name = MarketingName,
-            Kernel = vectorSearchKernel,
-            Arguments = CreateFunctionChoiceAutoBehavior(),
-            LoggerFactory = vectorSearchKernel.LoggerFactory
-        };
+        // create an conversation Thread with the Researcher agent
+        Azure.Response<Azure.AI.Projects.AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
+        Azure.AI.Projects.AgentThread thread = threadResponse.Value;
 
         StringBuilder sbResearchResults = new();
-        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync([], new() { { "research_context", createWriterRequest.Research } }))
+        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(thread.Id, new KernelArguments() { { "research_context", createWriterRequest.Research } }))
         {
             sbResearchResults.AppendLine(response.Content);
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
             {
                 Role = AIChatRole.Assistant,
-                Context = new AIChatAgentInfo(ResearcherName),
+                Context = new AIChatAgentInfo(CreativeWriterApp.ResearcherName),
                 Content = response.Content,
             });
         }
@@ -55,25 +38,10 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
             {
                 Role = AIChatRole.Assistant,
-                Context = new AIChatAgentInfo(MarketingName),
+                Context = new AIChatAgentInfo(CreativeWriterApp.MarketingName),
                 Content = response.Content,
             });
         }
-
-        ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"))
-        {
-            Name = WriterName,
-            Kernel = kernel,
-            Arguments = [],
-            LoggerFactory = kernel.LoggerFactory
-        };
-
-        ChatCompletionAgent editorAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/editor.yaml"))
-        {
-            Name = EditorName,
-            Kernel = kernel,
-            LoggerFactory = kernel.LoggerFactory
-        };
 
         writerAgent.Arguments["research_context"] = createWriterRequest.Research;
         writerAgent.Arguments["research_results"] = sbResearchResults.ToString();
@@ -102,26 +70,20 @@ public class CreativeWriterSession(Kernel kernel, Kernel bingKernel, Kernel vect
         }
     }
 
-    private static PromptTemplateConfig ReadFileForPromptTemplateConfig(string fileName)
-    {
-        string yaml = File.ReadAllText(fileName);
-        return KernelFunctionYaml.ToPromptTemplateConfig(yaml);
-    }
-
-    private static KernelArguments CreateFunctionChoiceAutoBehavior()
-    {
-        return new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Required() });
-    }
-
     private sealed class NoFeedbackLeftTerminationStrategy : TerminationStrategy
     {
         // Terminate when the final message contains the term "Article accepted, no further rework necessary." - all done
-        protected override Task<bool> ShouldAgentTerminateAsync(Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
+        protected override Task<bool> ShouldAgentTerminateAsync(Microsoft.SemanticKernel.Agents.Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
         {
-            if (agent.Name != EditorName)
+            if (agent.Name != CreativeWriterApp.EditorName)
                 return Task.FromResult(false);
 
             return Task.FromResult(history[history.Count - 1].Content?.Contains("Article accepted", StringComparison.OrdinalIgnoreCase) ?? false);
         }
+    }
+
+    public async Task CleanupSessionAsync() {
+        // delete all Agents from the session, otherwise they will not be deleted on the service/backend of Azure AI Agents Service
+        await agentsClient.DeleteAgentAsync(researcherAgent.Id);
     }
 }

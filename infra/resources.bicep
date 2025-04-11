@@ -81,8 +81,8 @@ resource explicitContributorUserRoleAssignment 'Microsoft.Authorization/roleAssi
   }
 }
 
-resource kv9b61bec3 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: replace('kv9b61bec3-${resourceToken}', '-', '')
+resource kv7ade0065 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: replace('kv7ade0065-${resourceToken}', '-', '')
   location: location
   properties: {
     sku: {
@@ -94,9 +94,9 @@ resource kv9b61bec3 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-resource kv9b61bec3RoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(kv9b61bec3.id, managedIdentity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
-  scope: kv9b61bec3
+resource kv7ade0065RoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(kv7ade0065.id, managedIdentity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+  scope: kv7ade0065
   properties: {
     principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
@@ -104,9 +104,9 @@ resource kv9b61bec3RoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource kv9b61bec3UserReadRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(kv9b61bec3.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))
-  scope: kv9b61bec3
+resource kv7ade0065UserReadRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(kv7ade0065.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))
+  scope: kv7ade0065
   properties: {
     principalId: principalId
     roleDefinitionId:  subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
@@ -124,5 +124,5 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.name
 output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = containerAppEnvironment.name
 output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppEnvironment.id
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = containerAppEnvironment.properties.defaultDomain
-output SERVICE_BINDING_KV9B61BEC3_ENDPOINT string = kv9b61bec3.properties.vaultUri
-output SERVICE_BINDING_KV9B61BEC3_NAME string = kv9b61bec3.name
+output SERVICE_BINDING_KV7ADE0065_ENDPOINT string = kv7ade0065.properties.vaultUri
+output SERVICE_BINDING_KV7ADE0065_NAME string = kv7ade0065.name

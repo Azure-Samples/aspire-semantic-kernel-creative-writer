@@ -22,12 +22,9 @@ properties:
         identity: {{ .Env.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}
     secrets:
       - name: connectionstrings--openai
-        value: '{{ .Env.OPENAI_CONNECTIONSTRING }}'
+        value: '{{ .Env.AOIABING_CONNECTIONSTRING }}'
       - name: connectionstrings--vectorsearch
         value: '{{ .Env.VECTORSEARCH_CONNECTIONSTRING }}'
-      - name: bingapikey
-        keyVaultUrl: '{{ .Env.SERVICE_BINDING_KV9B61BEC3_ENDPOINT }}secrets/bingAPIKey'
-        identity: {{ .Env.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}
   template:
     containers:
       - image: {{ .Image }}
@@ -35,6 +32,8 @@ properties:
         env:
           - name: AZURE_CLIENT_ID
             value: {{ .Env.MANAGED_IDENTITY_CLIENT_ID }}
+          - name: AIProjectConnectionString
+            value: '{{ .Env.AOIABING_AIPROJECTCONNECTIONSTRING }}'
           - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
             value: "true"
           - name: AzureDeployment
@@ -45,6 +44,8 @@ properties:
             value: text-embedding-3-large
           - name: HTTP_PORTS
             value: '{{ targetPortOrDefault 0 }}'
+          - name: ModelDeployment
+            value: '{{ .Env.AOIABING_MODELDEPLOYMENT }}'
           - name: OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES
             value: "true"
           - name: OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES
@@ -57,8 +58,6 @@ properties:
             secretRef: connectionstrings--openai
           - name: ConnectionStrings__vectorSearch
             secretRef: connectionstrings--vectorsearch
-          - name: BingAPIKey
-            secretRef: bingapikey
     scale:
       minReplicas: 1
 tags:

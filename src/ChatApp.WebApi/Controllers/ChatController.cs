@@ -34,12 +34,12 @@ public class ChatController : ControllerBase
         var response = Response;
         response.Headers.Append("Content-Type", "application/x-ndjson");
 
+        var session = await _creativeWriterApp.CreateSessionAsync();
+
         try
         {
             var userInput = request.Messages.Last();
             CreateWriterRequest createWriterRequest = _yamlDeserializer.Deserialize<CreateWriterRequest>(userInput.Content);
-
-            var session = await _creativeWriterApp.CreateSessionAsync(Response);
 
             await foreach (var delta in session.ProcessStreamingRequest(createWriterRequest))
             {
@@ -56,6 +56,11 @@ public class ChatController : ControllerBase
             });
             await response.WriteAsync($"{JsonSerializer.Serialize(delta)}\r\n");
             await response.Body.FlushAsync();
+        }
+        finally
+        {
+            // cleanup the session. e.g. delete the AI Agent Service Agent
+            await session.CleanupSessionAsync();
         }
     }
 }
