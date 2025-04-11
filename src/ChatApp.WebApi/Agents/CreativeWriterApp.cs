@@ -35,7 +35,7 @@ public class CreativeWriterApp
         this.defaultKernel = defaultKernel;
         this.configuration = configuration;
         var clientOptions = new AIProjectClientOptions();
-        _aIProjectClient = new AIProjectClient(configuration.GetValue<string>("AIProjectConnectionString")!, new DefaultAzureCredential(), clientOptions);
+        _aIProjectClient = new AIProjectClient(configuration.GetValue<string>("AIProjectConnectionString")!, new DefaultAzureCredential(new DefaultAzureCredentialOptions { ExcludeVisualStudioCredential = true }), clientOptions);
         _agentsClient = _aIProjectClient.GetAgentsClient();
     }
 
@@ -53,7 +53,7 @@ public class CreativeWriterApp
     {
         _vectorSearchKernel = defaultKernel.Clone();
         await ConfigureVectorSearchKernel(_vectorSearchKernel);
-        
+
         var bingConnection = await _aIProjectClient.GetConnectionsClient().GetConnectionAsync("bingGrounding");
         var connectionId = bingConnection.Value.Id;
 
@@ -63,7 +63,7 @@ public class CreativeWriterApp
         };
         BingGroundingToolDefinition bingGroundingTool = new BingGroundingToolDefinition(connectionList);
         var researcherTemplate = ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml");
-        
+
         // for the ease of the demo, we are creating an Agent in Azure AI Agent Service for every session and deleting it after the session finished
         // for production, you can want to create an agent once and reuse them
         var rAgent = await _agentsClient.CreateAgentAsync(
@@ -77,7 +77,8 @@ public class CreativeWriterApp
         AzureAIAgent researcherAgent = new(rAgent,
                                            _agentsClient,
                                            templateFactory: new KernelPromptTemplateFactory(),
-                                           templateFormat: PromptTemplateConfig.SemanticKernelTemplateFormat)  {
+                                           templateFormat: PromptTemplateConfig.SemanticKernelTemplateFormat)
+        {
             Name = ResearcherName,
             Kernel = defaultKernel,
             Arguments = CreateFunctionChoiceAutoBehavior(),
@@ -92,7 +93,7 @@ public class CreativeWriterApp
             LoggerFactory = _vectorSearchKernel.LoggerFactory
         };
 
-        ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"),templateFactory: new KernelPromptTemplateFactory())
+        ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"), templateFactory: new KernelPromptTemplateFactory())
         {
             Name = WriterName,
             Kernel = defaultKernel,
