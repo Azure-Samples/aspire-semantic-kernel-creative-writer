@@ -11,12 +11,13 @@ var azureEndpoint = Environment.GetEnvironmentVariable("AzureEndpoint");
 
 var vectorStoreCollectionName = Environment.GetEnvironmentVariable("VectorStoreCollectionName") ?? "products";
 
+var exisitingVectorSearch = !builder.Configuration.GetSection("ConnectionStrings")["vectorSearch"].IsNullOrEmpty();
+
 var agentModelBingDeployment = builder.AddBicepTemplate("aoiabing", "./BicepTemplates/openAi_bingSearch.module.bicep")
     .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
     .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
     .WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
 
-var exisitingVectorSearch = !builder.Configuration.GetSection("ConnectionStrings")["vectorSearch"].IsNullOrEmpty();
 var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSearch
     ? builder.AddConnectionString("vectorSearch")
     : builder.AddAzureSearch("vectorSearch")
@@ -31,12 +32,19 @@ var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSea
         };
     });
 
+var agentModelBingDeployment = builder.AddBicepTemplate("aoiabing", "./BicepTemplates/openAi_bingSearch.module.bicep")
+    .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+    .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+    .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+    .WithParameter("searchServiceName", !builder.ExecutionContext.IsPublishMode ? "" : vectorSearch.GetResourceName());
+
 var backend = builder.AddProject<Projects.ChatApp_WebApi>("backend")
     .WithReference(vectorSearch)
     .WithEnvironment("AzureDeployment", azureDeployment)
     .WithEnvironment("EmbeddingModelDeployment", embeddingModelDeployment)
     .WithEnvironment("AzureEndpoint", azureEndpoint)
     .WithEnvironment("VectorStoreCollectionName", vectorStoreCollectionName)
+    .WithEnvironment("UseAzureAIAgents", builder.Configuration["UseAzureAIAgents"] ?? "false")
     .WithEnvironment("ConnectionStrings__openAi", agentModelBingDeployment.GetOutput("connectionString"))
     .WithEnvironment("ModelDeployment", agentModelBingDeployment.GetOutput("modelDeployment"))
     .WithEnvironment("AIProjectConnectionString", agentModelBingDeployment.GetOutput("aiProjectConnectionString"))

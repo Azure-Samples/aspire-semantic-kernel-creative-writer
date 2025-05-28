@@ -29,11 +29,13 @@ public class CreativeWriterApp
     private AgentsClient _agentsClient;
     private Kernel defaultKernel;
     private IConfiguration configuration;
+    private bool _useAzureAIAgents;
 
     public CreativeWriterApp(Kernel defaultKernel, IConfiguration configuration)
     {
         this.defaultKernel = defaultKernel;
         this.configuration = configuration;
+        _useAzureAIAgents = configuration.GetValue<bool>("UseAzureAIAgents");
         var clientOptions = new AIProjectClientOptions();
         _aIProjectClient = new AIProjectClient(configuration.GetValue<string>("AIProjectConnectionString")!, new DefaultAzureCredential(new DefaultAzureCredentialOptions { ExcludeVisualStudioCredential = true }), clientOptions);
         _agentsClient = _aIProjectClient.GetAgentsClient();
@@ -54,61 +56,102 @@ public class CreativeWriterApp
         _vectorSearchKernel = defaultKernel.Clone();
         await ConfigureVectorSearchKernel(_vectorSearchKernel);
 
-        var bingConnection = await _aIProjectClient.GetConnectionsClient().GetConnectionAsync("bingGrounding");
-        var connectionId = bingConnection.Value.Id;
+        // Get Azure AI Search tool connection if available
+        var azureAISearchToolConnection = await TryGetAzureAISearchConnectionAsync();
 
-        ToolConnectionList connectionList = new ToolConnectionList
+        // Create agent instances based on configuration
+        if (_useAzureAIAgents)
         {
-            ConnectionList = { new ToolConnection(connectionId) }
-        };
-        BingGroundingToolDefinition bingGroundingTool = new BingGroundingToolDefinition(connectionList);
-        var researcherTemplate = ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml");
+            // Use Azure AI Agents for all roles
+            var researcherAgent = await CreateAzureAIAgentAsync(
+                ResearcherName,
+                "./Agents/Prompts/researcher.yaml",
+                new List<ToolDefinition> { new BingGroundingToolDefinition(await GetBingConnectionListAsync()) }
+            );
 
-        // for the ease of the demo, we are creating an Agent in Azure AI Agent Service for every session and deleting it after the session finished
-        // for production, you can want to create an agent once and reuse them
-        var rAgent = await _agentsClient.CreateAgentAsync(
-            model: configuration.GetValue<string>("ModelDeployment")!,
-            name: researcherTemplate.Name,
-            description: researcherTemplate.Description,
-            instructions: researcherTemplate.Template,
-            tools: new List<ToolDefinition> { bingGroundingTool }
-        );
+            var marketingAgent = await CreateAzureAIAgentAsync(
+                MarketingName,
+                "./Agents/Prompts/marketing.yaml", 
+                azureAISearchToolConnection != null 
+                    ? new List<ToolDefinition> { 
+                        new AzureAISearchToolDefinition(new ToolConnectionList { ConnectionList = { azureAISearchToolConnection } }) 
+                      } 
+                    : new List<ToolDefinition>()
+            );
 
-        AzureAIAgent researcherAgent = new(rAgent,
-                                           _agentsClient,
-                                           templateFactory: new KernelPromptTemplateFactory(),
-                                           templateFormat: PromptTemplateConfig.SemanticKernelTemplateFormat)
+            var writerAgent = await CreateAzureAIAgentAsync(
+                WriterName,
+                "./Agents/Prompts/writer.yaml",
+                new List<ToolDefinition>()
+            );
+
+            var editorAgent = await CreateAzureAIAgentAsync(
+                EditorName,
+                "./Agents/Prompts/editor.yaml",
+                new List<ToolDefinition>()
+            );
+
+            return new CreativeWriterSession(defaultKernel, _agentsClient, researcherAgent, marketingAgent, writerAgent, editorAgent);
+        }
+        else
         {
-            Name = ResearcherName,
-            Kernel = defaultKernel,
-            Arguments = CreateFunctionChoiceAutoBehavior(),
-            LoggerFactory = defaultKernel.LoggerFactory,
-        };
+            // Default implementation - only Researcher as Azure AI Agent, others as ChatCompletionAgent
+            var bingConnection = await _aIProjectClient.GetConnectionsClient().GetConnectionAsync("bingGrounding");
+            var connectionId = bingConnection.Value.Id;
 
-        ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"), templateFactory: new KernelPromptTemplateFactory())
-        {
-            Name = MarketingName,
-            Kernel = _vectorSearchKernel,
-            Arguments = CreateFunctionChoiceAutoBehavior(),
-            LoggerFactory = _vectorSearchKernel.LoggerFactory
-        };
+            ToolConnectionList connectionList = new ToolConnectionList
+            {
+                ConnectionList = { new ToolConnection(connectionId) }
+            };
+            BingGroundingToolDefinition bingGroundingTool = new BingGroundingToolDefinition(connectionList);
+            var researcherTemplate = ReadFileForPromptTemplateConfig("./Agents/Prompts/researcher.yaml");
 
-        ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"), templateFactory: new KernelPromptTemplateFactory())
-        {
-            Name = WriterName,
-            Kernel = defaultKernel,
-            Arguments = [],
-            LoggerFactory = defaultKernel.LoggerFactory
-        };
+            // for the ease of the demo, we are creating an Agent in Azure AI Agent Service for every session and deleting it after the session finished
+            // for production, you can want to create an agent once and reuse them
+            var rAgent = await _agentsClient.CreateAgentAsync(
+                model: configuration.GetValue<string>("ModelDeployment")!,
+                name: researcherTemplate.Name,
+                description: researcherTemplate.Description,
+                instructions: researcherTemplate.Template,
+                tools: new List<ToolDefinition> { bingGroundingTool }
+            );
 
-        ChatCompletionAgent editorAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/editor.yaml"), templateFactory: new KernelPromptTemplateFactory())
-        {
-            Name = EditorName,
-            Kernel = defaultKernel,
-            LoggerFactory = defaultKernel.LoggerFactory
-        };
+            AzureAIAgent researcherAgent = new(rAgent,
+                                               _agentsClient,
+                                               templateFactory: new KernelPromptTemplateFactory(),
+                                               templateFormat: PromptTemplateConfig.SemanticKernelTemplateFormat)
+            {
+                Name = ResearcherName,
+                Kernel = defaultKernel,
+                Arguments = CreateFunctionChoiceAutoBehavior(),
+                LoggerFactory = defaultKernel.LoggerFactory,
+            };
 
-        return new CreativeWriterSession(defaultKernel, _agentsClient, researcherAgent, marketingAgent, writerAgent, editorAgent);
+            ChatCompletionAgent marketingAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/marketing.yaml"), templateFactory: new KernelPromptTemplateFactory())
+            {
+                Name = MarketingName,
+                Kernel = _vectorSearchKernel,
+                Arguments = CreateFunctionChoiceAutoBehavior(),
+                LoggerFactory = _vectorSearchKernel.LoggerFactory
+            };
+
+            ChatCompletionAgent writerAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/writer.yaml"), templateFactory: new KernelPromptTemplateFactory())
+            {
+                Name = WriterName,
+                Kernel = defaultKernel,
+                Arguments = [],
+                LoggerFactory = defaultKernel.LoggerFactory
+            };
+
+            ChatCompletionAgent editorAgent = new(ReadFileForPromptTemplateConfig("./Agents/Prompts/editor.yaml"), templateFactory: new KernelPromptTemplateFactory())
+            {
+                Name = EditorName,
+                Kernel = defaultKernel,
+                LoggerFactory = defaultKernel.LoggerFactory
+            };
+
+            return new CreativeWriterSession(defaultKernel, _agentsClient, researcherAgent, marketingAgent, writerAgent, editorAgent);
+        }
     }
 
     private async Task ConfigureVectorSearchKernel(Kernel vectorSearchKernel)
@@ -158,5 +201,55 @@ public class CreativeWriterApp
     private static KernelArguments CreateFunctionChoiceAutoBehavior()
     {
         return new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Required() });
+    }
+
+    private async Task<ToolConnectionList> GetBingConnectionListAsync()
+    {
+        var bingConnection = await _aIProjectClient.GetConnectionsClient().GetConnectionAsync("bingGrounding");
+        var connectionId = bingConnection.Value.Id;
+
+        return new ToolConnectionList
+        {
+            ConnectionList = { new ToolConnection(connectionId) }
+        };
+    }
+
+    private async Task<ToolConnection?> TryGetAzureAISearchConnectionAsync()
+    {
+        try
+        {
+            var connectionsClient = _aIProjectClient.GetConnectionsClient();
+            var searchConnection = await connectionsClient.GetConnectionAsync("azureAISearch");
+            return new ToolConnection(searchConnection.Value.Id);
+        }
+        catch
+        {
+            // If connection doesn't exist, return null
+            return null;
+        }
+    }
+
+    private async Task<AzureAIAgent> CreateAzureAIAgentAsync(string name, string promptPath, List<ToolDefinition> tools)
+    {
+        var templateConfig = ReadFileForPromptTemplateConfig(promptPath);
+        
+        var agent = await _agentsClient.CreateAgentAsync(
+            model: configuration.GetValue<string>("ModelDeployment")!,
+            name: templateConfig.Name,
+            description: templateConfig.Description,
+            instructions: templateConfig.Template,
+            tools: tools
+        );
+
+        return new AzureAIAgent(agent,
+                             _agentsClient,
+                             templateFactory: new KernelPromptTemplateFactory(),
+                             templateFormat: PromptTemplateConfig.SemanticKernelTemplateFormat)
+        {
+            Name = name,
+            Kernel = name == MarketingName ? _vectorSearchKernel! : defaultKernel,
+            Arguments = name == WriterName ? new KernelArguments() : CreateFunctionChoiceAutoBehavior(),
+            LoggerFactory = defaultKernel.LoggerFactory,
+        };
     }
 }

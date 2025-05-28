@@ -10,17 +10,25 @@ using System.Text;
 
 namespace ChatApp.WebApi.Agents;
 
-public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient agentsClient, AzureAIAgent researcherAgent, ChatCompletionAgent marketingAgent, ChatCompletionAgent writerAgent, ChatCompletionAgent editorAgent)
+public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient agentsClient, Agent researcherAgent, Agent marketingAgent, Agent writerAgent, Agent editorAgent)
 {
 
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
-        // create an conversation Thread with the Researcher agent
-        Azure.Response<Azure.AI.Projects.AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
-        Azure.AI.Projects.AgentThread thread = threadResponse.Value;
+        // Create thread for AzureAIAgent if needed
+        string? threadId = null;
+        if (researcherAgent is AzureAIAgent azureAIResearcher)
+        {
+            // create a conversation Thread with the Researcher agent
+            Azure.Response<Azure.AI.Projects.AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
+            Azure.AI.Projects.AgentThread thread = threadResponse.Value;
+            threadId = thread.Id;
+        }
 
         StringBuilder sbResearchResults = new();
-        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(thread.Id, new KernelArguments() { { "research_context", createWriterRequest.Research } }))
+        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(
+            threadId, 
+            new KernelArguments() { { "research_context", createWriterRequest.Research } }))
         {
             sbResearchResults.AppendLine(response.Content);
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
@@ -83,7 +91,27 @@ public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient
     }
 
     public async Task CleanupSessionAsync() {
-        // delete all Agents from the session, otherwise they will not be deleted on the service/backend of Azure AI Agents Service
-        await agentsClient.DeleteAgentAsync(researcherAgent.Id);
+        // delete all Agents from the session that are AzureAIAgents
+        // otherwise they will not be deleted on the service/backend of Azure AI Agents Service
+        
+        if (researcherAgent is AzureAIAgent azureAIResearcher)
+        {
+            await agentsClient.DeleteAgentAsync(azureAIResearcher.Id);
+        }
+        
+        if (marketingAgent is AzureAIAgent azureAIMarketing)
+        {
+            await agentsClient.DeleteAgentAsync(azureAIMarketing.Id);
+        }
+        
+        if (writerAgent is AzureAIAgent azureAIWriter)
+        {
+            await agentsClient.DeleteAgentAsync(azureAIWriter.Id);
+        }
+        
+        if (editorAgent is AzureAIAgent azureAIEditor)
+        {
+            await agentsClient.DeleteAgentAsync(azureAIEditor.Id);
+        }
     }
 }

@@ -9,6 +9,13 @@ param keyVaultName string
 
 param aiProjectName string = take('aiProject-${uniqueString(resourceGroup().id)}', 64)
 
+param searchServiceName string = ''
+
+// Reference to existing search service if provided, otherwise create a new one
+resource searchService 'Microsoft.Search/searchServices@2023-11-01' existing = if(!empty(searchServiceName)) {
+  name: searchServiceName
+}
+
 resource bingSearchService 'Microsoft.Bing/accounts@2020-06-10' = {
   name: 'bing-grounding-${uniqueString(resourceGroup().id)}'
   location: 'global'
@@ -145,6 +152,21 @@ resource aiHub 'Microsoft.MachineLearningServices/workspaces@2024-10-01' = {
       }
     }
   }
+
+  resource azureSearchConnection 'connections@2024-01-01-preview' = {
+    name: 'azureAISearch'
+    properties: {
+      category: 'AzureSearch'
+      target: 'https://${searchService.name}.search.windows.net'
+      authType: 'AAD'
+      isSharedToAll: true
+      metadata: {
+        ApiType: 'Azure'
+        ResourceId: searchService.id
+      }
+    }
+  }
+}
 }
 
 //for constructing project connection string
