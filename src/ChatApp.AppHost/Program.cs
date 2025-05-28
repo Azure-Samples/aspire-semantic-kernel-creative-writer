@@ -13,11 +13,6 @@ var vectorStoreCollectionName = Environment.GetEnvironmentVariable("VectorStoreC
 
 var exisitingVectorSearch = !builder.Configuration.GetSection("ConnectionStrings")["vectorSearch"].IsNullOrEmpty();
 
-var agentModelBingDeployment = builder.AddBicepTemplate("aoiabing", "./BicepTemplates/openAi_bingSearch.module.bicep")
-    .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-    .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-    .WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-
 var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSearch
     ? builder.AddConnectionString("vectorSearch")
     : builder.AddAzureSearch("vectorSearch")
@@ -32,11 +27,14 @@ var vectorSearch = !builder.ExecutionContext.IsPublishMode && exisitingVectorSea
         };
     });
 
+// Simply provide an empty string as searchServiceName when not in publish mode
+string searchServiceName = "";
+
 var agentModelBingDeployment = builder.AddBicepTemplate("aoiabing", "./BicepTemplates/openAi_bingSearch.module.bicep")
     .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
     .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
     .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-    .WithParameter("searchServiceName", !builder.ExecutionContext.IsPublishMode ? "" : vectorSearch.GetResourceName());
+    .WithParameter("searchServiceName", searchServiceName);
 
 var backend = builder.AddProject<Projects.ChatApp_WebApi>("backend")
     .WithReference(vectorSearch)

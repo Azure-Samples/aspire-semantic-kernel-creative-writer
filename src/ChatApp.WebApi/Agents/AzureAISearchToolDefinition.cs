@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.SemanticKernel.Agents.AzureAI;
+using Azure.AI.Projects;
 using System.Text.Json.Serialization;
 
 namespace ChatApp.WebApi.Agents;
@@ -11,9 +12,11 @@ namespace ChatApp.WebApi.Agents;
 /// </summary>
 public class AzureAISearchToolDefinition : ToolDefinition
 {
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the type of the tool.
+    /// </summary>
     [JsonPropertyName("type")]
-    public override string Type => "azure_ai_search";
+    public string Type { get; } = "azure_ai_search";
 
     /// <summary>
     /// Creates a new instance of the <see cref="AzureAISearchToolDefinition"/> class.

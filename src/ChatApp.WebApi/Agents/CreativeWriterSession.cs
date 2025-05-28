@@ -6,13 +6,15 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.Agents.AzureAI;
+using Microsoft.SemanticKernel.ChatCompletion;
 using System.Text;
+using Azure.AI.Projects; // For AgentsClient
+using MSKAgent = Microsoft.SemanticKernel.Agents.Agent; // Create alias to disambiguate
 
 namespace ChatApp.WebApi.Agents;
 
-public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient agentsClient, Agent researcherAgent, Agent marketingAgent, Agent writerAgent, Agent editorAgent)
+public class CreativeWriterSession(Kernel kernel, AgentsClient agentsClient, MSKAgent researcherAgent, MSKAgent marketingAgent, MSKAgent writerAgent, MSKAgent editorAgent)
 {
-
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
         // Create thread for AzureAIAgent if needed
@@ -20,42 +22,94 @@ public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient
         if (researcherAgent is AzureAIAgent azureAIResearcher)
         {
             // create a conversation Thread with the Researcher agent
-            Azure.Response<Azure.AI.Projects.AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
-            Azure.AI.Projects.AgentThread thread = threadResponse.Value;
+            Azure.Response<AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
+            AgentThread thread = threadResponse.Value;
             threadId = thread.Id;
         }
 
         StringBuilder sbResearchResults = new();
-        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(
-            threadId, 
-            new KernelArguments() { { "research_context", createWriterRequest.Research } }))
+        
+        // Handle different agent types
+        if (researcherAgent is AzureAIAgent azureAIAgent)
         {
-            sbResearchResults.AppendLine(response.Content);
-            yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+            var prompt = $"Research context: {createWriterRequest.Research}";
+            KernelArguments args = new KernelArguments();
+            if (!string.IsNullOrEmpty(threadId))
             {
-                Role = AIChatRole.Assistant,
-                Context = new AIChatAgentInfo(CreativeWriterApp.ResearcherName),
-                Content = response.Content,
-            });
+                args["threadId"] = threadId;
+            }
+            
+            await foreach (var response in azureAIAgent.InvokeAsync(prompt, args))
+            {
+                sbResearchResults.AppendLine(response.Content);
+                yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+                {
+                    Role = AIChatRole.Assistant,
+                    Context = new AIChatAgentInfo(CreativeWriterApp.ResearcherName),
+                    Content = response.Content,
+                });
+            }
+        }
+        else if (researcherAgent is ChatCompletionAgent chatCompletionAgent)
+        {
+            ChatHistory researcherChatHistory = new ChatHistory();
+            researcherChatHistory.AddUserMessage($"Research context: {createWriterRequest.Research}");
+            
+            await foreach (var response in chatCompletionAgent.InvokeAsync(researcherChatHistory))
+            {
+                sbResearchResults.AppendLine(response.Content);
+                yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+                {
+                    Role = AIChatRole.Assistant,
+                    Context = new AIChatAgentInfo(CreativeWriterApp.ResearcherName),
+                    Content = response.Content,
+                });
+            }
         }
 
         StringBuilder sbProductResults = new();
-        await foreach (ChatMessageContent response in marketingAgent.InvokeAsync([], new() { { "product_context", createWriterRequest.Products } }))
+        
+        // Handle different agent types for marketing agent
+        if (marketingAgent is AzureAIAgent azureAIMarketingAgent)
         {
-            sbProductResults.AppendLine(response.Content);
-            yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+            var prompt = $"Product context: {createWriterRequest.Products}";
+            await foreach (var response in azureAIMarketingAgent.InvokeAsync(prompt))
             {
-                Role = AIChatRole.Assistant,
-                Context = new AIChatAgentInfo(CreativeWriterApp.MarketingName),
-                Content = response.Content,
-            });
+                sbProductResults.AppendLine(response.Content);
+                yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+                {
+                    Role = AIChatRole.Assistant,
+                    Context = new AIChatAgentInfo(CreativeWriterApp.MarketingName),
+                    Content = response.Content,
+                });
+            }
+        }
+        else if (marketingAgent is ChatCompletionAgent chatCompletionMarketingAgent)
+        {
+            ChatHistory marketingChatHistory = new ChatHistory();
+            marketingChatHistory.AddUserMessage($"Product context: {createWriterRequest.Products}");
+            
+            await foreach (var response in chatCompletionMarketingAgent.InvokeAsync(marketingChatHistory))
+            {
+                sbProductResults.AppendLine(response.Content);
+                yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+                {
+                    Role = AIChatRole.Assistant,
+                    Context = new AIChatAgentInfo(CreativeWriterApp.MarketingName),
+                    Content = response.Content,
+                });
+            }
         }
 
-        writerAgent.Arguments["research_context"] = createWriterRequest.Research;
-        writerAgent.Arguments["research_results"] = sbResearchResults.ToString();
-        writerAgent.Arguments["product_context"] = createWriterRequest.Products;
-        writerAgent.Arguments["product_results"] = sbProductResults.ToString();
-        writerAgent.Arguments["assignment"] = createWriterRequest.Writing;
+        // Set the arguments on the writer agent if it's a ChatCompletionAgent
+        if (writerAgent is ChatCompletionAgent chatCompletionWriterAgent)
+        {
+            chatCompletionWriterAgent.Arguments["research_context"] = createWriterRequest.Research;
+            chatCompletionWriterAgent.Arguments["research_results"] = sbResearchResults.ToString();
+            chatCompletionWriterAgent.Arguments["product_context"] = createWriterRequest.Products;
+            chatCompletionWriterAgent.Arguments["product_results"] = sbProductResults.ToString();
+            chatCompletionWriterAgent.Arguments["assignment"] = createWriterRequest.Writing;
+        }
 
         AgentGroupChat chat = new(writerAgent, editorAgent)
         {
@@ -66,7 +120,21 @@ public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient
                 TerminationStrategy = new NoFeedbackLeftTerminationStrategy()
             }
         };
+        
+        // Initialize with a prompt directly through the initial agent (writerAgent)
+        var writerContextMessage = $@"
+Research Context: {createWriterRequest.Research}
+Research Results: {sbResearchResults}
+Product Context: {createWriterRequest.Products}
+Product Results: {sbProductResults}
+Assignment: {createWriterRequest.Writing}
+";
 
+        // Start the chat with a message to the writer agent
+        ChatHistory writerChatHistory = new ChatHistory();
+        writerChatHistory.AddUserMessage(writerContextMessage);
+
+        // Just use the chat as is - no need for initial message setup
         await foreach (ChatMessageContent response in chat.InvokeAsync())
         {
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
@@ -81,7 +149,7 @@ public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient
     private sealed class NoFeedbackLeftTerminationStrategy : TerminationStrategy
     {
         // Terminate when the final message contains the term "Article accepted, no further rework necessary." - all done
-        protected override Task<bool> ShouldAgentTerminateAsync(Microsoft.SemanticKernel.Agents.Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
+        protected override Task<bool> ShouldAgentTerminateAsync(MSKAgent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
         {
             if (agent.Name != CreativeWriterApp.EditorName)
                 return Task.FromResult(false);
