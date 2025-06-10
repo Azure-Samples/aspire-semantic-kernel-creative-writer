@@ -15,6 +15,17 @@ public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient
 
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
+        // If user feedback is provided, handle user feedback flow
+        if (!string.IsNullOrEmpty(createWriterRequest.UserFeedback) && !string.IsNullOrEmpty(createWriterRequest.PreviousArticle))
+        {
+            await foreach (var delta in ProcessUserFeedback(createWriterRequest))
+            {
+                yield return delta;
+            }
+            yield break;
+        }
+
+        // Original flow: research, marketing, and writer-editor collaboration
         // create an conversation Thread with the Researcher agent
         Azure.Response<Azure.AI.Projects.AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
         Azure.AI.Projects.AgentThread thread = threadResponse.Value;
@@ -68,6 +79,47 @@ public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient
                 Content = response.Content,
             });
         }
+
+        // Signal that initial phase is complete and user can provide feedback
+        yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+        {
+            Role = AIChatRole.System,
+            Content = "Initial article complete. You can now provide additional feedback to further improve the article.",
+        });
+    }
+
+    private async IAsyncEnumerable<AIChatCompletionDelta> ProcessUserFeedback(CreateWriterRequest createWriterRequest)
+    {
+        // Set up the writer agent with minimal context for user feedback
+        // Clear any previous arguments and set basic context
+        writerAgent.Arguments.Clear();
+        writerAgent.Arguments["research_context"] = createWriterRequest.Research;
+        writerAgent.Arguments["product_context"] = createWriterRequest.Products;
+        writerAgent.Arguments["assignment"] = createWriterRequest.Writing;
+
+        // Create a simple chat history with the previous article and user feedback
+        var chatHistory = new Microsoft.SemanticKernel.ChatCompletion.ChatHistory();
+        
+        chatHistory.AddAssistantMessage(createWriterRequest.PreviousArticle!);
+        chatHistory.AddUserMessage($"Please revise the article based on this feedback: {createWriterRequest.UserFeedback}");
+
+        // Invoke the writer agent directly with the chat history
+        await foreach (ChatMessageContent response in writerAgent.InvokeAsync(chatHistory))
+        {
+            yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+            {
+                Role = AIChatRole.Assistant,
+                Context = new AIChatAgentInfo(CreativeWriterApp.WriterName),
+                Content = response.Content,
+            });
+        }
+
+        // Signal that user can provide more feedback if needed
+        yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+        {
+            Role = AIChatRole.System,
+            Content = "Article revised based on your feedback. You can provide additional feedback if needed.",
+        });
     }
 
     private sealed class NoFeedbackLeftTerminationStrategy : TerminationStrategy
