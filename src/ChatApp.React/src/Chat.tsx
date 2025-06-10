@@ -46,6 +46,10 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
   const inputId = useId();
   const [sessionState, setSessionState] = useState<unknown>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [lastArticle, setLastArticle] = useState<string>("");
+  const [showFeedbackInput, setShowFeedbackInput] = useState<boolean>(false);
+  const [feedbackInput, setFeedbackInput] = useState<string>("");
+  const [initialRequest, setInitialRequest] = useState<string>("");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,6 +64,11 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
     };
     var updatedMessages = [...messages, message];
     setMessages(updatedMessages);
+
+    // Store the initial request for potential feedback use
+    if (!showFeedbackInput) {
+      setInitialRequest(input);
+    }
 
     setInput("");
     try {
@@ -91,6 +100,107 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
             // If there was a message before, we need to save it
             if (latestMessage.context?.name != "dummy") {
               updatedMessages = [...updatedMessages, latestMessage];
+              
+              // Check if this was the writer agent's final article
+              if (latestMessage.context?.name === "Writer") {
+                setLastArticle(latestMessage.content);
+              }
+            }
+            latestMessage = {
+              content: agentName ? `**${agentName} Agent:**  \n` : "",
+              role: chatRole,
+              context: agentResponse.delta.context,
+            };
+          }
+        }
+        if (agentResponse.delta.content) {
+          latestMessage.content += agentResponse.delta.content;
+          setMessages([...updatedMessages, latestMessage]);
+
+          // Check for system message indicating completion
+          if (latestMessage.role === "system" && 
+              latestMessage.content.includes("Initial article complete")) {
+            setShowFeedbackInput(true);
+          }
+        }
+      }
+      
+      // Handle the final message
+      if (latestMessage.context?.name != "dummy") {
+        if (latestMessage.context?.name === "Writer") {
+          setLastArticle(latestMessage.content);
+        }
+      }
+    } catch (e) {
+      if (isChatError(e)) {
+        setMessages([...updatedMessages, e]);
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendFeedback = async () => {
+    if (!feedbackInput.trim() || !lastArticle || !initialRequest) {
+      return;
+    }
+
+    setSending(true);
+    
+    // Parse the initial request to extract the YAML components
+    try {
+      // For feedback, create a new YAML with the user feedback and previous article
+      const feedbackYaml = `${initialRequest}
+userFeedback: "${feedbackInput.replace(/"/g, '\\"')}"
+previousArticle: |
+  ${lastArticle.split('\n').map(line => '  ' + line).join('\n')}`;
+
+      const message: AIChatMessage = {
+        role: "user",
+        content: feedbackYaml,
+      };
+      
+      var updatedMessages = [...messages, {
+        role: "user" as const,
+        content: `**User Feedback:** ${feedbackInput}`,
+      }];
+      setMessages(updatedMessages);
+
+      setFeedbackInput("");
+      
+      const result = await client.getStreamedCompletion([message], {
+        sessionState: sessionState,
+      });
+
+      let latestMessage: AIAgentChatMessage = {
+        content: "",
+        role: "assistant",
+        context: { name: "dummy" },
+      };
+      
+      for await (const response of result) {
+        const agentResponse = response as AIAgentChatCompletionDelta;
+        if (agentResponse.sessionState) {
+          setSessionState(agentResponse.sessionState);
+        }
+        if (!agentResponse.delta) {
+          continue;
+        }
+        if (agentResponse.delta.role) {
+          const chatRole = agentResponse.delta.role;
+          const agentName = agentResponse.delta.context?.name;
+          const latestAgentName = latestMessage.context?.name;
+
+          // If the role changes or the agent changes, we create a new message
+          if (chatRole != latestMessage.role || agentName != latestAgentName) {
+            // If there was a message before, we need to save it
+            if (latestMessage.context?.name != "dummy") {
+              updatedMessages = [...updatedMessages, latestMessage];
+              
+              // Update the last article if this was from the writer
+              if (latestMessage.context?.name === "Writer") {
+                setLastArticle(latestMessage.content);
+              }
             }
             latestMessage = {
               content: agentName ? `**${agentName} Agent:**  \n` : "",
@@ -104,9 +214,16 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
           setMessages([...updatedMessages, latestMessage]);
         }
       }
+      
+      // Handle the final message
+      if (latestMessage.context?.name != "dummy") {
+        if (latestMessage.context?.name === "Writer") {
+          setLastArticle(latestMessage.content);
+        }
+      }
     } catch (e) {
       if (isChatError(e)) {
-        setMessages([...updatedMessages, e]);
+        setMessages([...messages, e]);
       }
     } finally {
       setSending(false);
@@ -150,21 +267,45 @@ export default function Chat({ style }: { style: React.CSSProperties }) {
         <div ref={messagesEndRef} />
       </div>
       <div className={styles.inputArea}>
-        <TextareaAutosize
-          id={inputId}
-          value={input}
-          disabled={sending}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
-            }
-          }}
-          minRows={1}
-          maxRows={4}
-        />
-        <Button onClick={sendMessage}>Send</Button>
+        {showFeedbackInput ? (
+          <>
+            <TextareaAutosize
+              value={feedbackInput}
+              disabled={sending}
+              onChange={(e) => setFeedbackInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.shiftKey) {
+                  e.preventDefault();
+                  sendFeedback();
+                }
+              }}
+              placeholder="Provide feedback on the article..."
+              minRows={2}
+              maxRows={6}
+            />
+            <Button onClick={sendFeedback} disabled={!feedbackInput.trim() || sending}>
+              Send Feedback
+            </Button>
+          </>
+        ) : (
+          <>
+            <TextareaAutosize
+              id={inputId}
+              value={input}
+              disabled={sending}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              minRows={1}
+              maxRows={4}
+            />
+            <Button onClick={sendMessage}>Send</Button>
+          </>
+        )}
       </div>
     </div>
   );
