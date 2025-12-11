@@ -4,7 +4,7 @@
 using Azure.Identity;
 using ChatApp.ServiceDefaults.Contracts;
 using ChatApp.WebApi.Agents;
-using Microsoft.SemanticKernel;
+using Microsoft.Extensions.AI;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -22,11 +22,32 @@ builder.AddAzureSearchClient("vectorSearch", configureSettings: settings =>
     settings.Credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { ExcludeVisualStudioCredential = true });
 });
 
-builder.Services.AddKernel()
-    .AddAzureOpenAIChatCompletion(builder.Configuration["AzureDeployment"]!)
-    .AddAzureAISearchVectorStore()
-    .AddAzureOpenAITextEmbeddingGeneration(builder.Configuration["EmbeddingModelDeployment"]!)
-    .ConfigureOpenTelemetry(builder.Configuration);
+// Register IChatClient for Agent Framework
+builder.Services.AddSingleton<IChatClient>(sp =>
+{
+    var openAiClient = sp.GetRequiredService<Azure.AI.OpenAI.AzureOpenAIClient>();
+    return new ChatClientBuilder(openAiClient
+        .GetChatClient(builder.Configuration["AzureDeployment"]!)
+        .AsIChatClient())
+        .UseOpenTelemetry(configure: c => c.EnableSensitiveData = true)
+        .Build();
+});
+
+// Register embedding generation service
+builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
+{
+    var openAiClient = sp.GetRequiredService<Azure.AI.OpenAI.AzureOpenAIClient>();
+    return openAiClient
+        .GetEmbeddingClient(builder.Configuration["EmbeddingModelDeployment"]!)
+        .AsEmbeddingGenerator();
+});
+
+// Register SearchClient for vector search
+builder.Services.AddSingleton<Azure.Search.Documents.SearchClient>(sp =>
+{
+    var searchIndexClient = sp.GetRequiredService<Azure.Search.Documents.Indexes.SearchIndexClient>();
+    return searchIndexClient.GetSearchClient(builder.Configuration["VectorStoreCollectionName"]!);
+});
 
 builder.Services.AddTransient<CreativeWriterApp>();
 

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.VectorData;
-using Microsoft.SemanticKernel.Data;
+using System.Text.Json.Serialization;
 
 namespace ChatApp.WebApi.Model;
 
@@ -12,11 +12,11 @@ internal sealed class ProductDataModel
     public required string Key { get; set; }
 
     [VectorStoreRecordData]
-    [TextSearchResultName]
+    [JsonPropertyName("name")]
     public required string Name { get; set; }
 
     [VectorStoreRecordData]
-    [TextSearchResultValue]
+    [JsonPropertyName("content")]
     public required string Content { get; set; }
 
     [VectorStoreRecordVector(3072)]

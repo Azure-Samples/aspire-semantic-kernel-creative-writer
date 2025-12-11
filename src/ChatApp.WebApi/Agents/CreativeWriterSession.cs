@@ -2,88 +2,186 @@
 // Licensed under the MIT License.
 
 using ChatApp.ServiceDefaults.Contracts;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Agents.Chat;
-using Microsoft.SemanticKernel.Agents.AzureAI;
+using Microsoft.Extensions.AI;
+using Microsoft.Agents.AI;
 using System.Text;
 
 namespace ChatApp.WebApi.Agents;
 
-public class CreativeWriterSession(Kernel kernel, Azure.AI.Projects.AgentsClient agentsClient, AzureAIAgent researcherAgent, ChatCompletionAgent marketingAgent, ChatCompletionAgent writerAgent, ChatCompletionAgent editorAgent)
+public class CreativeWriterSession
 {
+    private readonly IChatClient _chatClient;
+    private readonly Azure.AI.Projects.AgentsClient _agentsClient;
+    private readonly string _researcherAgentId;
+    private readonly ChatClientAgent _researcherAgent;
+    private readonly ChatClientAgent _marketingAgent;
+    private readonly ChatClientAgent _writerAgent;
+    private readonly ChatClientAgent _editorAgent;
+    private readonly List<ChatMessage> _chatHistory = new();
+
+    public CreativeWriterSession(
+        IChatClient chatClient,
+        Azure.AI.Projects.AgentsClient agentsClient,
+        string researcherAgentId,
+        ChatClientAgent researcherAgent,
+        ChatClientAgent marketingAgent,
+        ChatClientAgent writerAgent,
+        ChatClientAgent editorAgent)
+    {
+        _chatClient = chatClient;
+        _agentsClient = agentsClient;
+        _researcherAgentId = researcherAgentId;
+        _researcherAgent = researcherAgent;
+        _marketingAgent = marketingAgent;
+        _writerAgent = writerAgent;
+        _editorAgent = editorAgent;
+    }
 
     internal async IAsyncEnumerable<AIChatCompletionDelta> ProcessStreamingRequest(CreateWriterRequest createWriterRequest)
     {
-        // create an conversation Thread with the Researcher agent
-        Azure.Response<Azure.AI.Projects.AgentThread> threadResponse = await agentsClient.CreateThreadAsync();
-        Azure.AI.Projects.AgentThread thread = threadResponse.Value;
-
+        // Step 1: Research Phase
         StringBuilder sbResearchResults = new();
-        await foreach (ChatMessageContent response in researcherAgent.InvokeAsync(thread.Id, new KernelArguments() { { "research_context", createWriterRequest.Research } }))
+        var researchPrompt = $"Research Context: {createWriterRequest.Research}\n\nPlease provide comprehensive research on this topic.";
+        
+        var researchMessages = new List<ChatMessage>
         {
-            sbResearchResults.AppendLine(response.Content);
+            new(ChatRole.User, researchPrompt)
+        };
+
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(researchMessages))
+        {
+            var content = update.Text ?? string.Empty;
+            sbResearchResults.Append(content);
+            
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
             {
                 Role = AIChatRole.Assistant,
                 Context = new AIChatAgentInfo(CreativeWriterApp.ResearcherName),
-                Content = response.Content,
+                Content = content,
             });
         }
 
+        // Step 2: Marketing/Product Search Phase
         StringBuilder sbProductResults = new();
-        await foreach (ChatMessageContent response in marketingAgent.InvokeAsync([], new() { { "product_context", createWriterRequest.Products } }))
+        var productPrompt = $"Product Context: {createWriterRequest.Products}\n\nSearch for relevant product information using the available tools.";
+        
+        var marketingMessages = new List<ChatMessage>
         {
-            sbProductResults.AppendLine(response.Content);
+            new(ChatRole.User, productPrompt)
+        };
+
+        var marketingOptions = new ChatOptions
+        {
+            ToolMode = ChatToolMode.Auto
+        };
+
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(marketingMessages, marketingOptions))
+        {
+            var content = update.Text ?? string.Empty;
+            sbProductResults.Append(content);
+            
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
             {
                 Role = AIChatRole.Assistant,
                 Context = new AIChatAgentInfo(CreativeWriterApp.MarketingName),
-                Content = response.Content,
+                Content = content,
             });
         }
 
-        writerAgent.Arguments["research_context"] = createWriterRequest.Research;
-        writerAgent.Arguments["research_results"] = sbResearchResults.ToString();
-        writerAgent.Arguments["product_context"] = createWriterRequest.Products;
-        writerAgent.Arguments["product_results"] = sbProductResults.ToString();
-        writerAgent.Arguments["assignment"] = createWriterRequest.Writing;
+        // Step 3: Writing Phase
+        var writerPrompt = $@"
+Research Context: {createWriterRequest.Research}
+Research Results: {sbResearchResults}
+Product Context: {createWriterRequest.Products}
+Product Results: {sbProductResults}
+Assignment: {createWriterRequest.Writing}
 
-        AgentGroupChat chat = new(writerAgent, editorAgent)
+Please write an article based on the above information.";
+
+        var writerMessages = new List<ChatMessage>
         {
-            LoggerFactory = kernel.LoggerFactory,
-            ExecutionSettings = new AgentGroupChatSettings
-            {
-                SelectionStrategy = new SequentialSelectionStrategy() { InitialAgent = writerAgent },
-                TerminationStrategy = new NoFeedbackLeftTerminationStrategy()
-            }
+            new(ChatRole.User, writerPrompt)
         };
 
-        await foreach (ChatMessageContent response in chat.InvokeAsync())
+        StringBuilder articleContent = new();
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(writerMessages))
         {
+            var content = update.Text ?? string.Empty;
+            articleContent.Append(content);
+            
             yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
             {
                 Role = AIChatRole.Assistant,
-                Context = new AIChatAgentInfo(response.AuthorName ?? ""),
-                Content = response.Content,
+                Context = new AIChatAgentInfo(CreativeWriterApp.WriterName),
+                Content = content,
             });
         }
-    }
 
-    private sealed class NoFeedbackLeftTerminationStrategy : TerminationStrategy
-    {
-        // Terminate when the final message contains the term "Article accepted, no further rework necessary." - all done
-        protected override Task<bool> ShouldAgentTerminateAsync(Microsoft.SemanticKernel.Agents.Agent agent, IReadOnlyList<ChatMessageContent> history, CancellationToken cancellationToken)
+        // Step 4: Editing Loop
+        bool articleAccepted = false;
+        int maxIterations = 5;
+        int iteration = 0;
+
+        var editorMessages = new List<ChatMessage>
         {
-            if (agent.Name != CreativeWriterApp.EditorName)
-                return Task.FromResult(false);
+            new(ChatRole.System, "You are an editor. Review the article and provide feedback. If satisfactory, end with 'Article accepted, no further rework necessary.'"),
+            new(ChatRole.User, $"Please review this article:\n\n{articleContent}")
+        };
 
-            return Task.FromResult(history[history.Count - 1].Content?.Contains("Article accepted", StringComparison.OrdinalIgnoreCase) ?? false);
+        while (!articleAccepted && iteration < maxIterations)
+        {
+            StringBuilder editorFeedback = new();
+            
+            await foreach (var update in _chatClient.GetStreamingResponseAsync(editorMessages))
+            {
+                var content = update.Text ?? string.Empty;
+                editorFeedback.Append(content);
+                
+                yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+                {
+                    Role = AIChatRole.Assistant,
+                    Context = new AIChatAgentInfo(CreativeWriterApp.EditorName),
+                    Content = content,
+                });
+            }
+
+            var feedback = editorFeedback.ToString();
+            
+            // Check if article is accepted
+            if (feedback.Contains("Article accepted", StringComparison.OrdinalIgnoreCase))
+            {
+                articleAccepted = true;
+                break;
+            }
+
+            // If not accepted, writer revises
+            editorMessages.Add(new(ChatRole.Assistant, feedback));
+            
+            var revisionPrompt = $"Please revise the article based on this feedback:\n\n{feedback}";
+            editorMessages.Add(new(ChatRole.User, revisionPrompt));
+
+            StringBuilder revisedContent = new();
+            await foreach (var update in _chatClient.GetStreamingResponseAsync(editorMessages))
+            {
+                var content = update.Text ?? string.Empty;
+                revisedContent.Append(content);
+                
+                yield return new AIChatCompletionDelta(Delta: new AIChatMessageDelta
+                {
+                    Role = AIChatRole.Assistant,
+                    Context = new AIChatAgentInfo(CreativeWriterApp.WriterName),
+                    Content = content,
+                });
+            }
+
+            editorMessages.Add(new(ChatRole.Assistant, revisedContent.ToString()));
+            iteration++;
         }
     }
 
-    public async Task CleanupSessionAsync() {
-        // delete all Agents from the session, otherwise they will not be deleted on the service/backend of Azure AI Agents Service
-        await agentsClient.DeleteAgentAsync(researcherAgent.Id);
+    public async Task CleanupSessionAsync()
+    {
+        // Delete the Azure AI Agent Service agent
+        await _agentsClient.DeleteAgentAsync(_researcherAgentId);
     }
 }
