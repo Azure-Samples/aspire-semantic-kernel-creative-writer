@@ -28,7 +28,6 @@ public class CreativeWriterApp
     private readonly AgentsClient _agentsClient;
     private readonly SearchClient _searchClient;
     private readonly IConfiguration _configuration;
-    private AIAgent? _vectorSearchFunctionInterceptor;
 
     public CreativeWriterApp(
         IChatClient chatClient,
@@ -133,7 +132,7 @@ public class CreativeWriterApp
             async (string query) =>
             {
                 // Generate embedding for the query
-                var embedding = await _embeddingGenerator.GenerateEmbeddingAsync(query);
+                var embedding = await _embeddingGenerator.GenerateAsync(query);
                 
                 // Search for similar products
                 var searchOptions = new Azure.Search.Documents.SearchOptions
@@ -159,7 +158,7 @@ public class CreativeWriterApp
             description: "Searches for products in the vector database based on a query"
         );
 
-        marketingChatClient.Tools.Add(vectorSearchFunction);
+        marketingChatClient.AdditionalTools?.Add(vectorSearchFunction);
 
         return new ChatClientAgent(
             marketingChatClient,

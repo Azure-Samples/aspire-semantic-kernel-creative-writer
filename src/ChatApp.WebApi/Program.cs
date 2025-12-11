@@ -39,7 +39,7 @@ builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp 
     var openAiClient = sp.GetRequiredService<Azure.AI.OpenAI.AzureOpenAIClient>();
     return openAiClient
         .GetEmbeddingClient(builder.Configuration["EmbeddingModelDeployment"]!)
-        .AsEmbeddingGenerator();
+        .AsIEmbeddingGenerator();
 });
 
 // Register SearchClient for vector search

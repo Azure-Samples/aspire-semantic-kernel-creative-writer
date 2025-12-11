@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
 using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -81,38 +80,6 @@ public static class Extensions
         //    builder.Services.AddOpenTelemetry()
         //       .UseAzureMonitor();
         //}
-
-        return builder;
-    }
-
-    public static IKernelBuilder ConfigureOpenTelemetry(this IKernelBuilder builder, IConfiguration configuration)
-    {
-        //var useOtlpExporter = !string.IsNullOrWhiteSpace(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-        //if (!useOtlpExporter)
-        //{
-        //    return builder;
-        //}
-
-        var resourceBuilder = ResourceBuilder
-            .CreateDefault();
-
-        // Enable model diagnostics with sensitive data.
-        AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnosticsSensitive", true);
-
-        var traceProvider = Sdk.CreateTracerProviderBuilder()
-            .SetResourceBuilder(resourceBuilder)
-            .AddSource("Microsoft.SemanticKernel*")
-            .AddOtlpExporter()
-            .Build();
-
-        var meterProvider = Sdk.CreateMeterProviderBuilder()
-            .SetResourceBuilder(resourceBuilder)
-            .AddMeter("Microsoft.SemanticKernel*")
-            .AddOtlpExporter()
-            .Build();
-
-        builder.Services.AddSingleton<BaseProvider>(traceProvider);
-        builder.Services.AddSingleton<BaseProvider>(meterProvider);
 
         return builder;
     }
