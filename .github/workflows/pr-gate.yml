@@ -28,7 +28,7 @@ jobs:
         with:
           dotnet-version: "9.0.x"
       - name: Install azd
-        uses: Azure/setup-azd@9653ee26f515b0ce205579894d4a49400f8da970 # v2
+        uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2.4.0
 
       - name: Install GH CLI # Because otherwise this cannot be executed locally with `gh act`
         uses: dev-hanz-ops/install-gh-cli-action@8fff9050dae2d81b38f94500d8b74ad1d1d47410 # v0.2.0
@@ -47,7 +47,8 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Post comment on PR
-        if: always()
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENT_BODY: ${{ env.validation_result }}
