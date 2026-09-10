@@ -23,15 +23,15 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: "9.0.x"
       - name: Install azd
         uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2.4.0
 
       - name: Install GH CLI # Because otherwise this cannot be executed locally with `gh act`
-        uses: dev-hanz-ops/install-gh-cli-action@8fff9050dae2d81b38f94500d8b74ad1d1d47410 # v0.2.0
+        uses: dev-hanz-ops/install-gh-cli-action@6089bdde54118ad7ca3d22053eb2d69387fd2779 # v0.3.0
 
       - id: validation
         uses: microsoft/template-validation-action@a41bfdccaf91796b3487a5ddd49293478ea1e567 # upstream PR #97
