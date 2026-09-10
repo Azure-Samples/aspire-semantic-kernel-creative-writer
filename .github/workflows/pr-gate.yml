@@ -23,18 +23,18 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: "9.0.x"
       - name: Install azd
-        uses: Azure/setup-azd@9653ee26f515b0ce205579894d4a49400f8da970 # v2
+        uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2.4.0
 
       - name: Install GH CLI # Because otherwise this cannot be executed locally with `gh act`
         uses: dev-hanz-ops/install-gh-cli-action@8fff9050dae2d81b38f94500d8b74ad1d1d47410 # v0.2.0
 
       - id: validation
-        uses: microsoft/template-validation-action@e1206403a3695eb48b4426e3ec8b1919101ac770 # v0.3.5
+        uses: microsoft/template-validation-action@a41bfdccaf91796b3487a5ddd49293478ea1e567 # upstream PR #97
 
       - name: Read file content
         if: always()
@@ -47,7 +47,8 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Post comment on PR
-        if: always()
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENT_BODY: ${{ env.validation_result }}
