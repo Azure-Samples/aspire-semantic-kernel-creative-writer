@@ -15,16 +15,16 @@ products:
 - dotnet
 - dotnet-aspire
 urlFragment: aspire-semantic-kernel-creative-writer
-name: "Creative Writing Assistant: Working with Agents using Semantic Kernel and .NET Aspire"
-description: "Comprehensive example of a multi-agent chat application built with .NET Aspire, Semantic Kernel, React and Vite, and the `@microsoft/ai-chat-protocol` package."
+name: "Creative Writing Assistant: Working with Agents using Semantic Kernel and Aspire"
+description: "Comprehensive example of a multi-agent chat application built with Aspire, Semantic Kernel, React and Vite, and the `@microsoft/ai-chat-protocol` package."
 ---
 -->
 
-# Creative Writing Assistant: Working with Agents using Semantic Kernel and .NET Aspire (C#)
+# Creative Writing Assistant: Working with Agents using Semantic Kernel and Aspire (C#)
 
 This project is an alternative to the python version at <https://github.com/Azure-Samples/contoso-creative-writer>.
 
-It is a comprehensive example of a chat application built with .NET Aspire, Semantic Kernel, and the `@microsoft/ai-chat-protocol` package. The frontend of the application is developed using React and Vite.
+It is a comprehensive example of a chat application built with Aspire, Semantic Kernel, and the `@microsoft/ai-chat-protocol` package. The frontend of the application is developed using React and Vite.
 
 Underneath it uses an Azure AI Foundry hub & project, Azure AI Agent Service with a standard agent setup, Bing Search and Azure AI Search for grounding.
 
@@ -55,7 +55,7 @@ Underneath it uses an Azure AI Foundry hub & project, Azure AI Agent Service wit
 
 The application consists of 2 main projects:
 
-- `ChatApp.WebApi`: This is a .NET Web API that handles chat interactions, powered by .NET Aspire and Semantic Kernel. It provides endpoints for the chat frontend to communicate with the chat backend. The `@microsoft/ai-chat-protocol` package is used to handle chat interactions, including streaming and non-streaming requests. For normal chat completion both can be used, to trigger the creative writer only streaming is possible.
+- `ChatApp.WebApi`: This is a .NET Web API that handles chat interactions, powered by Aspire and Semantic Kernel. It provides endpoints for the chat frontend to communicate with the chat backend. The `@microsoft/ai-chat-protocol` package is used to handle chat interactions, including streaming and non-streaming requests. For normal chat completion both can be used, to trigger the creative writer only streaming is possible.
 
 - `ChatApp.React`: This is a React app that provides the user interface for the chat application. It is built using Vite, a modern and efficient build tool. It uses the `@microsoft/ai-chat-protocol` package to handle chat interactions, allowing for flexible communication with the chat backend.
 
@@ -149,7 +149,7 @@ This data will be sent to the API so that each example will have the evaluations
 #### Running the Evaluation Tests
 
 1. Make sure the Creative Writer application is configured and able to run on your local machine before running the tests.  
-   The tests will call into the Creative Writer APIs to collect AI responses using an .NET Aspire test host.
+   The tests will call into the Creative Writer APIs to collect AI responses using an Aspire test host.
 2. The evaluation process will use the same Azure OpenAI model deployment which is used by the main application.
 3. Run the tests from Visual Studio, VS Code, or `dotnet test`.
 

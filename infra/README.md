@@ -1,4 +1,4 @@
-# Generate Bicep from .NET Aspire project model
+# Generate Bicep from Aspire project model
 
 ```shell
 # Execute in the root

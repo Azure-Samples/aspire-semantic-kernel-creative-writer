@@ -20,7 +20,7 @@
     <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="0.9.56-preview" />
     <PackageReference Include="Microsoft.ML.Tokenizers" Version="1.0.1" />
     <PackageReference Include="Microsoft.ML.Tokenizers.Data.O200kBase" Version="1.0.1" />
-    <PackageReference Include="YamlDotNet" Version="16.0.0" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 
   <ItemGroup>

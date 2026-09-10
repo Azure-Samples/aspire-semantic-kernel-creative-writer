@@ -19,7 +19,7 @@
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" Version="1.42.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.42.0" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="10.0.8" />
     <PackageReference Include="YamlDotNet" Version="15.3.0" />
   </ItemGroup>
   <ItemGroup>
